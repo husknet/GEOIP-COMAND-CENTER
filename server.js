@@ -10,6 +10,9 @@ const PORT = process.env.PORT || 3000;
 const CONFIG_PATH = path.join(__dirname, 'config.json');
 const THEMES_PATH = path.join(__dirname, 'themes.json');
 
+// HELPER: Always prioritize environment variable for admin password
+const getAdminPassword = () => process.env.ADMIN_PASSWORD || 'cyberpunk2024';
+
 // Middleware
 app.use(helmet({
   contentSecurityPolicy: false,
@@ -46,15 +49,22 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// Load config on startup and cache it
+// FIXED: Load config and ALWAYS override adminPassword with env var
 async function loadConfig() {
   try {
     const data = await fs.readFile(CONFIG_PATH, 'utf8');
-    app.locals.config = JSON.parse(data);
+    const fileConfig = JSON.parse(data);
+    
+    // CRITICAL: Override adminPassword with environment variable
+    app.locals.config = {
+      ...fileConfig,
+      adminPassword: getAdminPassword(),
+    };
     return app.locals.config;
   } catch (error) {
+    // File doesn't exist - create fresh config with env var password
     const defaultConfig = {
-      adminPassword: process.env.ADMIN_PASSWORD || 'cyberpunk2024',
+      adminPassword: getAdminPassword(),
       finalUrl: 'https://msod.skope.net.au',
       botDetectionEnabled: true,
       blockingCriteria: {
@@ -73,8 +83,16 @@ async function loadConfig() {
       theme: "default",
       lastUpdated: new Date().toISOString()
     };
+    
     app.locals.config = defaultConfig;
-    await saveConfig(defaultConfig);
+    
+    // Attempt to save (will fail on ephemeral filesystem, but that's ok)
+    try {
+      await saveConfig(defaultConfig);
+    } catch (e) {
+      console.warn('⚠️ Could not persist config.json (ephemeral filesystem)');
+    }
+    
     return defaultConfig;
   }
 }
@@ -160,7 +178,7 @@ app.get('/api/geoip/:ip', async (req, res) => {
 app.post('/api/admin/login', async (req, res) => {
   const { password } = req.body;
   const config = req.app.locals.config;
-  
+
   if (password === config.adminPassword) {
     res.json({ success: true, token: 'admin-session-' + Date.now() });
   } else {
@@ -174,7 +192,7 @@ app.get('/api/admin/config', async (req, res) => {
   if (!authHeader?.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'ERR-NO-AUTH' });
   }
-  
+
   res.json(req.app.locals.config);
 });
 
@@ -184,13 +202,13 @@ app.post('/api/admin/config', async (req, res) => {
   if (!authHeader?.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'ERR-NO-AUTH' });
   }
-  
+
   try {
     const newConfig = req.body;
     const oldConfig = req.app.locals.config;
-    
+
     newConfig.adminPassword = newConfig.adminPassword || oldConfig.adminPassword;
-    
+
     await saveConfig(newConfig);
     res.json({ success: true, lastUpdated: newConfig.lastUpdated });
   } catch (error) {
