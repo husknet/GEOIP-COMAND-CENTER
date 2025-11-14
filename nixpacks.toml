@@ -1,0 +1,11 @@
+# nixpacks.toml
+providers = ["node"]
+
+[phases.setup]
+nixPkgs = ["nodejs_18", "npm"]
+
+[phases.install]
+cmds = ["npm install"]
+
+[start]
+cmd = "npm start"
