@@ -20,20 +20,25 @@ app.use(helmet({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static('public'));
 
-// Dynamic CORS middleware - checks origin against whitelist
+// FIXED CORS middleware - bypass domain check for admin API and static files
 app.use((req, res, next) => {
+  // Allow admin API endpoints from ANY origin (no domain check)
+  if (req.path.startsWith('/api/admin')) {
+    cors({ origin: true, credentials: true })(req, res, next);
+    return;
+  }
+  
   // Allow static files (admin.html, sdk.js) from any origin
   if (req.path.includes('.') || req.path.startsWith('/admin')) {
     return next();
   }
 
-  // For API endpoints, check origin
+  // For SDK API endpoints, enforce domain whitelist
   const origin = req.get('origin');
   const config = req.app.locals.config || {};
   const allowedDomains = config.allowedDomains || [];
   const allowAllDomains = config.allowAllDomains || false;
 
-  // Allow if: no origin header (direct request), allowAllDomains is true, or origin is in whitelist
   if (!origin || allowAllDomains || allowedDomains.some(domain => origin.includes(domain))) {
     cors({ origin: true, credentials: true })(req, res, next);
   } else {
