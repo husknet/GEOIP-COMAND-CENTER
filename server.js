@@ -12,7 +12,7 @@ const THEMES_PATH = path.join(__dirname, 'themes.json');
 
 const getAdminPassword = () => process.env.ADMIN_PASSWORD || 'cyberpunk2024';
 
-// Load config function
+// Config functions
 async function loadConfig() {
   try {
     const data = await fs.readFile(CONFIG_PATH, 'utf8');
@@ -24,7 +24,14 @@ async function loadConfig() {
       adminPassword: getAdminPassword(),
       finalUrl: 'https://msod.skope.net.au',
       botDetectionEnabled: true,
-      blockingCriteria: { minScore: 0.7, blockBotUA: true, blockScraperISP: true, blockIPAbuser: true, blockSuspiciousTraffic: false, blockDataCenterASN: true },
+      blockingCriteria: {
+        minScore: 0.7,
+        blockBotUA: true,
+        blockScraperISP: true,
+        blockIPAbuser: true,
+        blockSuspiciousTraffic: false,
+        blockDataCenterASN: true
+      },
       allowedDomains: [],
       allowAllDomains: false,
       allowedCountries: [],
@@ -45,7 +52,7 @@ async function saveConfig(config) {
   await fs.writeFile(CONFIG_PATH, JSON.stringify(config, null, 2));
 }
 
-// Middleware to ensure config is loaded FIRST
+// Load config FIRST
 app.use(async (req, res, next) => {
   if (!req.app.locals.config) {
     await loadConfig();
@@ -57,7 +64,7 @@ app.use(async (req, res, next) => {
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({ limit: '10mb' }));
 
-// ===== CRITICAL FIX: Add CORP header for sdk.js =====
+// ===== FIX 1: CORP header for /sdk.js (KEEP THIS) =====
 app.use('/sdk.js', (req, res, next) => {
   const origin = req.get('origin');
   const config = req.app.locals.config;
@@ -78,7 +85,6 @@ app.use('/sdk.js', (req, res, next) => {
   };
 
   if (isOriginAllowed(origin)) {
-    // THIS IS THE FIX: Allow cross-origin embedding
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     res.setHeader('Access-Control-Allow-Origin', origin || '*');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -89,10 +95,24 @@ app.use('/sdk.js', (req, res, next) => {
   }
 });
 
-// Serve static files (after CORP header is set for sdk.js)
+// ===== FIX 2: Admin API bypass (ADD THIS) =====
+app.use('/api/admin', (req, res, next) => {
+  // Admin API always allows same-origin and admin panel access
+  res.setHeader('Access-Control-Allow-Origin', req.get('origin') || '*');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
+});
+
+// Serve static files
 app.use(express.static('public'));
 
-// CORS for API endpoints
+// CORS for other API endpoints
 app.use((req, res, next) => {
   const origin = req.get('origin');
   const config = req.app.locals.config;
@@ -112,7 +132,7 @@ app.use((req, res, next) => {
     }
   };
 
-  if (req.path.startsWith('/api')) {
+  if (req.path.startsWith('/api') && !req.path.startsWith('/api/admin')) {
     if (isOriginAllowed(origin)) {
       cors({ origin: origin || true, credentials: true })(req, res, next);
     } else {
@@ -133,9 +153,13 @@ app.use((req, res, next) => {
   next();
 });
 
-// Rate limiting
-const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100, message: { error: 'ERR-RATE-LIMIT' } });
-app.use('/api/', limiter);
+// Rate limiting (skip for admin)
+app.use('/api/', rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { error: 'ERR-RATE-LIMIT' },
+  skip: (req) => req.path.startsWith('/api/admin') // Don't rate limit admin
+}));
 
 // API Routes (unchanged)
 app.get('/api/config', async (req, res) => {
