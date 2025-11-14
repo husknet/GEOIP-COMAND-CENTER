@@ -1,15 +1,15 @@
 (function() {
   'use strict';
 
-  const SDK_VERSION = '3.1';
+  const SDK_VERSION = '3.3';
   const CONFIG_POLL_INTERVAL = 30000;
   const SDK_CONFIG_KEY = '__geoIPControlConfig';
   
-  // === HARDCODED API URL - Provided only once ===
+  // === HARDCODED API URL ===
   const API_BASE_URL = 'https://geoip-comand-center-production.up.railway.app';
   // ==============================================
   
-  // ERROR CODE MAPPING - Admin-only knowledge
+  // ERROR CODE MAPPING
   const ERROR_CODES = {
     'ERR-BOT-HIGH': 'Bot score exceeded threshold',
     'ERR-COUNTRY-BLOCK': 'Country is in blocked list',
@@ -29,8 +29,7 @@
   
   let config = null;
   let pollInterval = null;
-  
-  // REMOVED: getBaseUrl() function - no longer needed with hardcoded URL
+  let isTrafficAllowed = false;
   
   async function getIP() {
     return fetch('https://api.ipify.org?format=json')
@@ -44,7 +43,6 @@
   
   async function pollConfig() {
     try {
-      // HARDCODED: Config URL now uses the hardcoded base URL
       const configUrl = `${API_BASE_URL}/api/config`;
       console.log('SDK: Fetching config from:', configUrl);
       
@@ -57,7 +55,6 @@
         localStorage.setItem(SDK_CONFIG_KEY, JSON.stringify(config));
         console.log('SDK: Config loaded successfully:', config);
       } else if (response.status === 403) {
-        // Domain blocked by CORS
         const errorData = await response.json();
         console.error('SDK: Domain blocked:', errorData);
         showBlockedPage('ERR-DOMAIN-BLOCKED');
@@ -67,7 +64,6 @@
       }
     } catch (e) {
       console.error('SDK: Config fetch error:', e);
-      // Try to load from cache
       const cached = localStorage.getItem(SDK_CONFIG_KEY);
       if (cached) {
         config = JSON.parse(cached);
@@ -80,7 +76,6 @@
   
   async function checkGeoIP(ip) {
     try {
-      // HARDCODED: GeoIP URL now uses the hardcoded base URL
       const geoipUrl = `${API_BASE_URL}/api/geoip/${ip}`;
       console.log('SDK: Checking GeoIP at:', geoipUrl);
       
@@ -96,7 +91,6 @@
   
   async function checkBotDetection(ip, userAgent) {
     try {
-      // HARDCODED: Bot detection URL now uses the hardcoded base URL
       const botDetectUrl = `${API_BASE_URL}/api/bot-detect`;
       console.log('SDK: Checking bot detection at:', botDetectUrl);
       
@@ -141,11 +135,9 @@
     const ip = await getIP();
     const userAgent = navigator.userAgent;
     const country = await checkGeoIP(ip);
-    const params = window.location.search;
     
     console.log('SDK: Evaluating rules for IP:', ip, 'Country:', country);
     
-    // Check domain whitelist
     const currentDomain = window.location.hostname;
     if (!config.allowAllDomains && config.allowedDomains?.length && !config.allowedDomains.some(d => currentDomain.includes(d))) {
       console.log('SDK: Domain blocked:', currentDomain);
@@ -239,28 +231,10 @@
     }, 3000);
   }
   
-  function showPreloader() {
-    const preloader = document.createElement('div');
-    preloader.id = 'geo-ip-preloader';
-    preloader.innerHTML = `
-      <style>
-        #geo-ip-preloader { position: fixed; inset: 0; background: #1a2a6c; color: white; display: flex; align-items: center; justify-content: center; z-index: 999999; font-family: system-ui; }
-        .spinner { width: 60px; height: 60px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #4a90e2; border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-      </style>
-      <div style="text-align: center;">
-        <div class="spinner"></div>
-        <h2>Accessing Content...</h2>
-      </div>
-    `;
-    document.body.appendChild(preloader);
-    console.log('SDK: Preloader shown');
-  }
-  
   async function runCheck() {
-    // Prevent loop if already on final URL
-    if (config && window.location.href.includes(config.finalUrl)) {
-      console.log('SDK: Already on final URL, skipping check');
+    if (!config) {
+      console.warn('SDK: No config available');
+      isTrafficAllowed = false;
       return;
     }
     
@@ -269,14 +243,10 @@
     
     if (result.blocked) {
       showBlockedPage(result.code);
+      isTrafficAllowed = false;
     } else {
-      showPreloader();
-      setTimeout(() => {
-        const params = window.location.search;
-        const finalUrl = params ? `${config.finalUrl}${params}` : config.finalUrl;
-        console.log('SDK: Redirecting to final URL:', finalUrl);
-        window.location.href = finalUrl;
-      }, 3000);
+      console.log('SDK: Traffic allowed, page can proceed');
+      isTrafficAllowed = true;
     }
   }
   
@@ -284,23 +254,19 @@
     console.log('SDK: Initializing...');
     await pollConfig();
     
-    if (config && window.location.href.includes(config.finalUrl)) {
-      console.log('SDK: Already on final URL, stopping initialization');
-      return;
+    if (config) {
+      console.log('SDK: Running initial security check...');
+      await runCheck();
     }
     
+    // Periodic config refresh
     pollInterval = setInterval(async () => {
       await pollConfig();
       if (config) {
-        console.log('SDK: Running periodic check...');
-        runCheck();
+        console.log('SDK: Running periodic security check...');
+        await runCheck();
       }
     }, CONFIG_POLL_INTERVAL);
-    
-    if (config) {
-      console.log('SDK: Running initial check...');
-      runCheck();
-    }
   }
   
   if (document.readyState === 'loading') {
@@ -322,9 +288,16 @@
     getConfig: () => {
       console.log('SDK: getConfig called:', config);
       return config;
+    },
+    isTrafficAllowed: () => {
+      console.log('SDK: isTrafficAllowed called:', isTrafficAllowed);
+      return isTrafficAllowed;
+    },
+    runSecurityCheck: () => {
+      console.log('SDK: Manual security check triggered');
+      return runCheck();
     }
   };
   
   console.log('SDK: Loaded version', SDK_VERSION);
-  
 })();
