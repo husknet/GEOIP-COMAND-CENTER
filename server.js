@@ -13,48 +13,7 @@ const THEMES_PATH = path.join(__dirname, 'themes.json');
 // HELPER: Always prioritize environment variable for admin password
 const getAdminPassword = () => process.env.ADMIN_PASSWORD || 'cyberpunk2024';
 
-// Middleware
-app.use(helmet({
-  contentSecurityPolicy: false,
-}));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.static('public'));
-
-// FIXED CORS middleware - bypass domain check for admin API and static files
-app.use((req, res, next) => {
-  // Allow admin API endpoints from ANY origin (no domain check)
-  if (req.path.startsWith('/api/admin')) {
-    cors({ origin: true, credentials: true })(req, res, next);
-    return;
-  }
-  
-  // Allow static files (admin.html, sdk.js) from any origin
-  if (req.path.includes('.') || req.path.startsWith('/admin')) {
-    return next();
-  }
-
-  // For SDK API endpoints, enforce domain whitelist
-  const origin = req.get('origin');
-  const config = req.app.locals.config || {};
-  const allowedDomains = config.allowedDomains || [];
-  const allowAllDomains = config.allowAllDomains || false;
-
-  if (!origin || allowAllDomains || allowedDomains.some(domain => origin.includes(domain))) {
-    cors({ origin: true, credentials: true })(req, res, next);
-  } else {
-    res.status(403).json({ error: 'ERR-DOMAIN-BLOCKED' });
-  }
-});
-
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: { error: 'ERR-RATE-LIMIT' }
-});
-app.use('/api/', limiter);
-
-// FIXED: Load config and ALWAYS override adminPassword with env var
+// Load config function (moved to top)
 async function loadConfig() {
   try {
     const data = await fs.readFile(CONFIG_PATH, 'utf8');
@@ -102,13 +61,14 @@ async function loadConfig() {
   }
 }
 
+// Save config function
 async function saveConfig(config) {
   config.lastUpdated = new Date().toISOString();
   app.locals.config = config;
   await fs.writeFile(CONFIG_PATH, JSON.stringify(config, null, 2));
 }
 
-// Middleware to ensure config is loaded
+// Middleware to ensure config is loaded FIRST (moved before CORS)
 app.use(async (req, res, next) => {
   if (!req.app.locals.config) {
     await loadConfig();
@@ -116,7 +76,90 @@ app.use(async (req, res, next) => {
   next();
 });
 
-// Public config endpoint
+// Security and parsing middleware
+app.use(helmet({
+  contentSecurityPolicy: false,
+}));
+app.use(express.json({ limit: '10mb' }));
+
+// ====== CORRECTED CORS MIDDLEWARE - handles /sdk.js properly ======
+app.use((req, res, next) => {
+  const origin = req.get('origin');
+  const config = req.app.locals.config;
+  const allowedDomains = config.allowedDomains || [];
+  const allowAllDomains = config.allowAllDomains || false;
+
+  // Helper to check if origin matches allowed domains
+  const isOriginAllowed = (originToCheck) => {
+    if (!originToCheck) return true; // Same-origin request
+    if (allowAllDomains) return true;
+    
+    try {
+      const originHostname = new URL(originToCheck).hostname;
+      return allowedDomains.some(domain => 
+        originHostname === domain || originHostname.endsWith('.' + domain)
+      );
+    } catch {
+      return false;
+    }
+  };
+
+  // CRITICAL: Handle /sdk.js with proper CORS headers
+  if (req.path === '/sdk.js') {
+    if (isOriginAllowed(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin || '*');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Vary', 'Origin');
+      return next(); // Continue to static file handler
+    } else {
+      return res.status(403).json({ error: 'ERR-DOMAIN-BLOCKED' });
+    }
+  }
+
+  // Handle preflight OPTIONS for API
+  if (req.method === 'OPTIONS' && req.path.startsWith('/api')) {
+    if (isOriginAllowed(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin || '*');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-SDK-Version');
+      res.setHeader('Vary', 'Origin');
+      return res.status(200).end();
+    } else {
+      return res.status(403).json({ error: 'ERR-DOMAIN-BLOCKED' });
+    }
+  }
+
+  // For API endpoints
+  if (req.path.startsWith('/api')) {
+    if (isOriginAllowed(origin)) {
+      cors({ origin: origin || true, credentials: true })(req, res, next);
+    } else {
+      res.status(403).json({ error: 'ERR-DOMAIN-BLOCKED' });
+    }
+    return;
+  }
+
+  // For other static files - allow without CORS headers
+  if (req.path.includes('.')) {
+    return next();
+  }
+
+  next();
+});
+
+// Serve static files AFTER CORS middleware (CRITICAL ORDER)
+app.use(express.static('public'));
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { error: 'ERR-RATE-LIMIT' }
+});
+app.use('/api/', limiter);
+
+// API Routes (unchanged from your code)
 app.get('/api/config', async (req, res) => {
   try {
     const config = req.app.locals.config;
@@ -138,7 +181,6 @@ app.get('/api/config', async (req, res) => {
   }
 });
 
-// Themes endpoint
 app.get('/api/themes', async (req, res) => {
   try {
     const data = await fs.readFile(THEMES_PATH, 'utf8');
@@ -148,7 +190,6 @@ app.get('/api/themes', async (req, res) => {
   }
 });
 
-// Bot detection proxy
 app.post('/api/bot-detect', async (req, res) => {
   try {
     const { ip, user_agent } = req.body;
@@ -164,7 +205,6 @@ app.post('/api/bot-detect', async (req, res) => {
   }
 });
 
-// IP lookup
 app.get('/api/geoip/:ip', async (req, res) => {
   try {
     const { ip } = req.params;
@@ -179,7 +219,6 @@ app.get('/api/geoip/:ip', async (req, res) => {
   }
 });
 
-// Admin login
 app.post('/api/admin/login', async (req, res) => {
   const { password } = req.body;
   const config = req.app.locals.config;
@@ -191,7 +230,6 @@ app.post('/api/admin/login', async (req, res) => {
   }
 });
 
-// Admin config GET
 app.get('/api/admin/config', async (req, res) => {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
@@ -201,7 +239,6 @@ app.get('/api/admin/config', async (req, res) => {
   res.json(req.app.locals.config);
 });
 
-// Admin config POST
 app.post('/api/admin/config', async (req, res) => {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
@@ -221,7 +258,6 @@ app.post('/api/admin/config', async (req, res) => {
   }
 });
 
-// Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', code: 'HEALTHY' });
 });
