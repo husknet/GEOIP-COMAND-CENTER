@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GEO-IP CONTROL STATION v3.1</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/typed.js/2.0.12/typed.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --neon-green: #00ff00; --neon-red: #ff0080; --neon-blue: #00ffff; --neon-purple: #ff00ff; --bg-dark: #0a0a1a; --bg-panel: #111122; --crt-glow: rgba(0, 255, 0, 0.5); }
+    * { box-sizing: border-box; image-rendering: pixelated; }
+    body { margin: 0; background: var(--bg-dark); color: var(--neon-green); font-family: 'Courier Prime', monospace; overflow-x: hidden; min-height: 100vh; }
+    body::before { content: ''; position: fixed; inset: 0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,0,0.03) 2px, rgba(0,255,0,0.03) 4px); pointer-events: none; z-index: 1; }
+    @keyframes flicker { 0%, 100% { opacity: 0.97; } 50% { opacity: 1; } }
+    .crt { animation: flicker 0.15s infinite; }
+    .container { max-width: 1400px; margin: 0 auto; padding: 20px; position: relative; z-index: 2; }
+    header { text-align: center; padding: 40px 0; border-bottom: 3px solid var(--neon-green); box-shadow: 0 0 20px var(--crt-glow); margin-bottom: 40px; }
+    h1 { font-family: 'VT323', monospace; font-size: 4rem; margin: 0; text-shadow: 0 0 10px var(--neon-green), 0 0 20px var(--neon-green), 0 0 40px var(--neon-green); letter-spacing: 4px; animation: glitch 2s infinite; }
+    @keyframes glitch { 0%, 100% { transform: translate(0); } 20% { transform: translate(-2px, 2px); } 40% { transform: translate(-2px, -2px); } 60% { transform: translate(2px, 2px); } 80% { transform: translate(2px, -2px); } }
+    .login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; }
+    .login-box { background: var(--bg-panel); border: 2px solid var(--neon-green); padding: 40px; width: 100%; max-width: 500px; box-shadow: 0 0 30px var(--crt-glow), inset 0 0 20px rgba(0, 255, 0, 0.05); }
+    .login-box h2 { font-family: 'VT323', monospace; font-size: 2.5rem; margin-top: 0; text-align: center; }
+    input[type="password"], input[type="text"], textarea, select { width: 100%; padding: 15px; background: #000; border: 2px solid var(--neon-green); color: var(--neon-green); font-family: 'Courier Prime', monospace; font-size: 1.2rem; margin: 20px 0; outline: none; box-shadow: 0 0 10px rgba(0, 255, 0, 0.3); }
+    input:focus, textarea:focus, select:focus { border-color: var(--neon-blue); box-shadow: 0 0 20px var(--neon-blue); }
+    button { background: transparent; border: 2px solid var(--neon-green); color: var(--neon-green); padding: 12px 30px; font-family: 'VT323', monospace; font-size: 1.5rem; cursor: pointer; transition: all 0.3s; text-transform: uppercase; letter-spacing: 2px; }
+    button:hover { background: var(--neon-green); color: var(--bg-dark); box-shadow: 0 0 20px var(--neon-green); }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .typewriter { font-family: 'Courier Prime', monospace; font-size: 1.1rem; line-height: 1.6; min-height: 120px; margin-bottom: 40px; padding: 20px; background: rgba(0, 255, 0, 0.03); border-left: 3px solid var(--neon-green); }
+    .typewriter .typed-cursor { color: var(--neon-green); animation: blink 1s infinite; }
+    @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+    .section { background: var(--bg-panel); border: 2px solid var(--neon-green); padding: 30px; margin-bottom: 30px; box-shadow: 0 0 20px rgba(0, 255, 0, 0.1); }
+    .section h2 { font-family: 'VT323', monospace; font-size: 2rem; margin-top: 0; color: var(--neon-blue); text-shadow: 0 0 10px var(--neon-blue); }
+    .toggle-switch { display: inline-flex; align-items: center; gap: 15px; margin: 20px 0; }
+    .switch { position: relative; width: 60px; height: 30px; background: #333; border: 2px solid var(--neon-green); cursor: pointer; transition: background 0.3s; }
+    .switch.active { background: var(--neon-green); }
+    .switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; background: var(--bg-dark); transition: left 0.3s; }
+    .switch.active::after { left: 32px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .country-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; max-height: 300px; overflow-y: auto; padding: 10px; background: #000; border: 1px solid var(--neon-green); }
+    .country-item { padding: 8px; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; }
+    .country-item:hover { background: rgba(0, 255, 0, 0.1); border-color: var(--neon-green); }
+    .country-item.selected { background: var(--neon-green); color: var(--bg-dark); }
+    textarea { min-height: 120px; resize: vertical; }
+    .criteria-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+    .criteria-item { display: flex; align-items: center; justify-content: space-between; padding: 15px; background: rgba(0, 255, 0, 0.05); border: 1px solid var(--neon-green); }
+    input[type="range"] { width: 100%; margin: 20px 0; background: #000; border: 1px solid var(--neon-green); height: 5px; outline: none; }
+    input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; background: var(--neon-green); cursor: pointer; box-shadow: 0 0 10px var(--neon-green); }
+    .theme-preview { width: 100%; height: 100px; border: 2px solid var(--neon-green); margin: 10px 0; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-family: 'VT323', monospace; text-shadow: 0 0 10px currentColor; }
+    .error-code-legend { background: rgba(0, 0, 0, 0.5); padding: 20px; margin-top: 20px; border: 1px solid var(--neon-purple); font-size: 0.9rem; }
+    .error-code-legend h3 { color: var(--neon-purple); margin-top: 0; }
+    .error-code-item { margin: 5px 0; }
+    .error-code { color: var(--neon-red); font-weight: bold; margin-right: 10px; }
+    .status-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-panel); border-top: 2px solid var(--neon-green); padding: 15px; display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; }
+    .status-indicator { display: flex; align-items: center; gap: 10px; }
+    .status-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--neon-red); box-shadow: 0 0 10px var(--neon-red); }
+    .status-dot.online { background: var(--neon-green); box-shadow: 0 0 10px var(--neon-green); }
+    .save-btn { position: fixed; bottom: 80px; right: 30px; background: var(--neon-purple); border-color: var(--neon-purple); font-size: 1.2rem; padding: 15px 30px; z-index: 10; }
+    .save-btn:hover { background: var(--neon-purple); box-shadow: 0 0 30px var(--neon-purple); }
+    ::-webkit-scrollbar { width: 10px; }
+    ::-webkit-scrollbar-track { background: var(--bg-dark); }
+    ::-webkit-scrollbar-thumb { background: var(--neon-green); border: 1px solid var(--bg-dark); }
+    @media (max-width: 768px) { h1 { font-size: 2.5rem; } .login-box { padding: 20px; } .section { padding: 20px; } .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body class="crt">
+  <div class="container">
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-screen">
+      <div class="login-box">
+        <h2>SYSTEM ACCESS</h2>
+        <div style="text-align: center; margin-bottom: 20px;"><div style="font-size: 3rem;">🔐</div></div>
+        <input type="password" id="passwordInput" placeholder="ENTER PASSWORD" autofocus>
+        <div id="loginError" style="color: var(--neon-red); margin: 10px 0; display: none;">ACCESS DENIED</div>
+        <button id="loginBtn" style="width: 100%;">INITIATE</button>
+      </div>
+    </div>
+
+    <!-- Main Panel -->
+    <div id="mainPanel" class="panel">
+      <header>
+        <h1>GEO-IP CONTROL STATION</h1>
+        <div style="color: var(--neon-blue); font-size: 1.2rem; margin-top: 10px;">v3.1 // DOMAIN WHITELIST + ERROR CODES</div>
+      </header>
+
+      <!-- Typewriter Instructions -->
+      <div class="typewriter" id="typewriter"></div>
+
+      <!-- Domain Whitelist -->
+      <div class="section">
+        <h2>🌐 DOMAIN ACCESS CONTROL</h2>
+        <div class="toggle-switch">
+          <span>ALLOW ALL DOMAINS:</span>
+          <div class="switch" id="allowAllDomainsToggle"></div>
+          <span id="allowAllDomainsStatus">DISABLED</span>
+        </div>
+        <p style="color: var(--neon-blue);">When disabled, only listed domains can load the SDK</p>
+        <textarea id="allowedDomains" placeholder="example.com&#10;yourdomain.com&#10;app.net"></textarea>
+        <p style="font-size: 0.9rem; color: var(--neon-green);">Enter one domain per line (e.g., example.com)</p>
+      </div>
+
+      <!-- Bot Detection -->
+      <div class="section">
+        <h2>🤖 BOT DETECTION MODULE</h2>
+        <div class="toggle-switch">
+          <span>STATUS:</span>
+          <div class="switch" id="botToggle"></div>
+          <span id="botStatus">DISABLED</span>
+        </div>
+        
+        <div class="criteria-grid">
+          <div class="criteria-item"><label>Block Bot User-Agent</label><input type="checkbox" id="blockBotUA"></div>
+          <div class="criteria-item"><label>Block Scraper ISP</label><input type="checkbox" id="blockScraperISP"></div>
+          <div class="criteria-item"><label>Block IP Abuser</label><input type="checkbox" id="blockIPAbuser"></div>
+          <div class="criteria-item"><label>Block Suspicious Traffic</label><input type="checkbox" id="blockSuspiciousTraffic"></div>
+          <div class="criteria-item"><label>Block Data Center ASN</label><input type="checkbox" id="blockDataCenterASN"></div>
+        </div>
+
+        <div style="margin-top: 20px;">
+          <label>Minimum Bot Score: <span id="scoreValue">0.7</span></label>
+          <input type="range" id="minScore" min="0" max="1" step="0.1" value="0.7">
+        </div>
+      </div>
+
+      <!-- Country Controls -->
+      <div class="section">
+        <h2>🌍 GEOGRAPHIC FIREWALL</h2>
+        <p style="color: var(--neon-blue);">Ctrl+Click to select multiple countries</p>
+        <div style="margin-bottom: 15px;">
+          <button id="allowAllCountriesBtn" style="background: var(--neon-purple); border-color: var(--neon-purple); font-size: 1rem; padding: 10px 20px;">ALLOW ALL COUNTRIES</button>
+          <span style="margin-left: 15px; color: var(--neon-green); font-size: 0.9rem;">Click to allow access from all countries</span>
+        </div>
+        <div class="grid-2" style="margin-top: 10px;">
+          <div>
+            <h3 style="color: var(--neon-green);">ALLOWED COUNTRIES</h3>
+            <div class="country-grid" id="allowedCountries"></div>
+          </div>
+          <div>
+            <h3 style="color: var(--neon-red);">BLOCKED COUNTRIES</h3>
+            <div class="country-grid" id="blockedCountries"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- IP Blacklist -->
+      <div class="section">
+        <h2>🚫 IP BLACKLIST</h2>
+        <p>One IP per line</p>
+        <textarea id="ipBlacklist" placeholder="192.168.1.1&#10;10.0.0.5"></textarea>
+      </div>
+
+      <!-- Theme Selector -->
+      <div class="section">
+        <h2>🎨 BLOCK PAGE THEME</h2>
+        <p>Select visual theme for blocked users</p>
+        <div class="grid-3" style="margin-top: 20px;">
+          <div>
+            <label>Theme:</label>
+            <select id="themeSelector" style="margin-top: 10px;">
+              <option value="default">Default CRT</option>
+              <option value="cyberpunk">Cyberpunk 2077</option>
+              <option value="matrix">Matrix Terminal</option>
+              <option value="hacker">Midnight Hacker</option>
+              <option value="neon">Neon Dreams</option>
+              <option value="retro">Retro Wave</option>
+            </select>
+          </div>
+          <div style="grid-column: span 2;">
+            <div class="theme-preview" id="themePreview">PREVIEW</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Error Code Legend (Admin Only) -->
+      <div class="section">
+        <h2>🛡️ ERROR CODE LEGEND</h2>
+        <p style="color: var(--neon-blue);">These codes are shown to blocked users. Only you know what they mean.</p>
+        <div class="error-code-legend">
+          <div class="error-code-item"><span class="error-code">ERR-BOT-HIGH</span>Bot score exceeded threshold</div>
+          <div class="error-code-item"><span class="error-code">ERR-COUNTRY-BLOCK</span>Country is blocked</div>
+          <div class="error-code-item"><span class="error-code">ERR-IP-BLACKLIST</span>IP is blacklisted</div>
+          <div class="error-code-item"><span class="error-code">ERR-ISP-SCRAPER</span>Scraper ISP detected</div>
+          <div class="error-code-item"><span class="error-code">ERR-ASN-DATACENTER</span>Data center ASN</div>
+          <div class="error-code-item"><span class="error-code">ERR-TRAFFIC-SUSPICIOUS</span>Suspicious traffic pattern</div>
+          <div class="error-code-item"><span class="error-code">ERR-UA-BOT</span>Bot User-Agent</div>
+          <div class="error-code-item"><span class="error-code">ERR-IP-ABUSER</span>IP abuse detected</div>
+          <div class="error-code-item"><span class="error-code">ERR-DOMAIN-BLOCKED</span>Domain not in whitelist</div>
+        </div>
+      </div>
+
+      <!-- Final URL -->
+      <div class="section">
+        <h2>🎯 FINAL REDIRECT URL</h2>
+        <input type="text" id="finalUrl" placeholder="https://msod.skope.net.au">
+        <p style="color: var(--neon-blue); margin-top: 10px;">URL parameters preserved automatically</p>
+      </div>
+
+      <!-- Save Button -->
+      <button class="save-btn" id="saveBtn">DEPLOY CONFIG</button>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div class="status-indicator">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">OFFLINE</span>
+      </div>
+      <div id="lastUpdate">Last update: Never</div>
+    </div>
+  </div>
+
+  <script>
+    // Typewriter text
+    const typewriterText = [
+      "INITIALIZING GEO-IP CONTROL STATION v3.1...",
+      "DOMAIN WHITELIST ACTIVE. Only approved domains can load the SDK.",
+      "Error codes are cryptic - attackers can't learn bypass techniques.",
+      "'Allow All Countries' button added for quick geo-fence disable.",
+      "Use the domain list to control which sites can embed your SDK.",
+      "System armed with stealth protocols. Ready."
+    ].join('\n\n');
+
+    // Countries list
+    const COUNTRIES = [
+      "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan",
+      "Bahamas", "Bahrain", "Bangladesh", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia", "Botswana",
+      "Brazil", "Brunei", "Bulgaria", "Burkina", "Burundi", "Cambodia", "Cameroon", "Canada", "Chad", "Chile", "China", "Colombia",
+      "Congo", "Croatia", "Cuba", "Cyprus", "Czech", "Denmark", "Ecuador", "Egypt", "Eritrea", "Estonia", "Eswatini", "Ethiopia",
+      "Fiji", "Finland", "France", "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea",
+      "Guyana", "Haiti", "Honduras", "Hungary", "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy",
+      "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", "Korea", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", "Lebanon", "Lesotho",
+      "Liberia", "Libya", "Lithuania", "Luxembourg", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Mauritania",
+      "Mauritius", "Mexico", "Moldova", "Monaco", "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar", "Namibia", "Nepal",
+      "Netherlands", "New Zealand", "Nicaragua", "Niger", "Nigeria", "Norway", "Oman", "Pakistan", "Panama", "Papua", "Paraguay",
+      "Peru", "Philippines", "Poland", "Portugal", "Qatar", "Romania", "Russia", "Rwanda", "Samoa", "Senegal", "Serbia", "Seychelles",
+      "Sierra", "Singapore", "Slovakia", "Slovenia", "Somalia", "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland",
+      "Syria", "Taiwan", "Tanzania", "Thailand", "Togo", "Tonga", "Trinidad", "Tunisia", "Turkey", "UAE", "UK", "USA", "Uruguay",
+      "Uzbekistan", "Vanuatu", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe"
+    ];
+
+    let token = null;
+    let currentConfig = {};
+    let themes = {};
+
+    async function init() {
+      themes = await loadThemes();
+    }
+
+    async function loadThemes() {
+      try {
+        const response = await fetch('/api/themes');
+        if (response.ok) return await response.json();
+      } catch (e) {
+        console.error('Failed to load themes');
+      }
+      return {};
+    }
+
+    // Login
+    document.getElementById('loginBtn').addEventListener('click', async () => {
+      const password = document.getElementById('passwordInput').value;
+      const errorDiv = document.getElementById('loginError');
+      
+      try {
+        const response = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          token = data.token;
+          document.getElementById('loginScreen').style.display = 'none';
+          document.getElementById('mainPanel').classList.add('active');
+          initTypewriter();
+          loadConfig();
+          updateStatus(true);
+        } else {
+          errorDiv.style.display = 'block';
+          document.getElementById('passwordInput').value = '';
+          document.getElementById('passwordInput').focus();
+        }
+      } catch (e) {
+        errorDiv.style.display = 'block';
+      }
+    });
+
+    document.getElementById('passwordInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') document.getElementById('loginBtn').click();
+    });
+
+    function initTypewriter() {
+      const typed = new Typed('#typewriter', {
+        strings: [typewriterText],
+        typeSpeed: 20,
+        backSpeed: 0,
+        showCursor: true,
+        cursorChar: '_'
+      });
+    }
+
+    async function loadConfig() {
+      try {
+        const response = await fetch('/api/admin/config', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+          currentConfig = await response.json();
+          populateUi(currentConfig);
+        }
+      } catch (e) {
+        console.error('Failed to load config');
+      }
+    }
+
+    function populateUi(config) {
+      // Domain whitelist
+      document.getElementById('allowAllDomainsToggle').classList.toggle('active', config.allowAllDomains);
+      document.getElementById('allowAllDomainsStatus').textContent = config.allowAllDomains ? 'ENABLED' : 'DISABLED';
+      document.getElementById('allowedDomains').value = (config.allowedDomains || []).join('\n');
+      
+      // Bot detection
+      document.getElementById('botToggle').classList.toggle('active', config.botDetectionEnabled);
+      document.getElementById('botStatus').textContent = config.botDetectionEnabled ? 'ENABLED' : 'DISABLED';
+      
+      // Criteria
+      const criteria = config.blockingCriteria || {};
+      document.getElementById('blockBotUA').checked = criteria.blockBotUA;
+      document.getElementById('blockScraperISP').checked = criteria.blockScraperISP;
+      document.getElementById('blockIPAbuser').checked = criteria.blockIPAbuser;
+      document.getElementById('blockSuspiciousTraffic').checked = criteria.blockSuspiciousTraffic;
+      document.getElementById('blockDataCenterASN').checked = criteria.blockDataCenterASN;
+      document.getElementById('minScore').value = criteria.minScore || 0.7;
+      document.getElementById('scoreValue').textContent = criteria.minScore || 0.7;
+
+      // Countries
+      populateCountries('allowedCountries', config.allowedCountries || []);
+      populateCountries('blockedCountries', config.blockedCountries || []);
+
+      // IP Blacklist
+      document.getElementById('ipBlacklist').value = (config.ipBlacklist || []).join('\n');
+
+      // Final URL
+      document.getElementById('finalUrl').value = config.finalUrl || '';
+
+      // Theme
+      document.getElementById('themeSelector').value = config.theme || 'default';
+      updateThemePreview(config.theme || 'default');
+
+      // Update time
+      document.getElementById('lastUpdate').textContent = `Last update: ${new Date(config.lastUpdated).toLocaleString()}`;
+    }
+
+    function populateCountries(elementId, selectedCountries) {
+      const container = document.getElementById(elementId);
+      container.innerHTML = '';
+      COUNTRIES.forEach(country => {
+        const item = document.createElement('div');
+        item.className = 'country-item';
+        item.textContent = country;
+        if (selectedCountries.includes(country)) item.classList.add('selected');
+        item.addEventListener('click', (e) => e.target.classList.toggle('selected'));
+        container.appendChild(item);
+      });
+    }
+
+    // Allow All Countries button
+    document.getElementById('allowAllCountriesBtn').addEventListener('click', () => {
+      // Clear blocked selection
+      document.querySelectorAll('#blockedCountries .selected').forEach(item => {
+        item.classList.remove('selected');
+      });
+      // Select all in allowed
+      document.querySelectorAll('#allowedCountries .country-item').forEach(item => {
+        item.classList.add('selected');
+      });
+      alert('✓ All countries allowed. Remember to DEPLOY CONFIG.');
+    });
+
+    // Allow All Domains toggle
+    document.getElementById('allowAllDomainsToggle').addEventListener('click', function() {
+      this.classList.toggle('active');
+      const status = document.getElementById('allowAllDomainsStatus');
+      status.textContent = this.classList.contains('active') ? 'ENABLED' : 'DISABLED';
+      status.style.color = this.classList.contains('active') ? 'var(--neon-green)' : 'var(--neon-red)';
+    });
+
+    // Bot toggle
+    document.getElementById('botToggle').addEventListener('click', function() {
+      this.classList.toggle('active');
+      const status = document.getElementById('botStatus');
+      status.textContent = this.classList.contains('active') ? 'ENABLED' : 'DISABLED';
+      status.style.color = this.classList.contains('active') ? 'var(--neon-green)' : 'var(--neon-red)';
+    });
+
+    // Range slider
+    document.getElementById('minScore').addEventListener('input', function() {
+      document.getElementById('scoreValue').textContent = this.value;
+    });
+
+    // Theme preview
+    document.getElementById('themeSelector').addEventListener('change', (e) => {
+      updateThemePreview(e.target.value);
+    });
+
+    function updateThemePreview(themeId) {
+      const theme = themes[themeId] || themes.default;
+      const preview = document.getElementById('themePreview');
+      if (!theme || !preview) return;
+      
+      preview.style.background = theme.bg;
+      preview.style.color = theme.text;
+      preview.style.textShadow = `0 0 10px ${theme.accent}`;
+      preview.textContent = `${theme.name.toUpperCase()} - THEME ACTIVE`;
+    }
+
+    // Collect form data
+    function collectFormData() {
+      const allowedDomains = document.getElementById('allowedDomains').value
+        .split('\n')
+        .map(d => d.trim())
+        .filter(d => d && d !== '');
+      const allowed = Array.from(document.querySelectorAll('#allowedCountries .selected')).map(el => el.textContent);
+      const blocked = Array.from(document.querySelectorAll('#blockedCountries .selected')).map(el => el.textContent);
+      const ipBlacklist = document.getElementById('ipBlacklist').value.split('\n').map(ip => ip.trim()).filter(ip => ip);
+      
+      return {
+        botDetectionEnabled: document.getElementById('botToggle').classList.contains('active'),
+        blockingCriteria: {
+          minScore: parseFloat(document.getElementById('minScore').value),
+          blockBotUA: document.getElementById('blockBotUA').checked,
+          blockScraperISP: document.getElementById('blockScraperISP').checked,
+          blockIPAbuser: document.getElementById('blockIPAbuser').checked,
+          blockSuspiciousTraffic: document.getElementById('blockSuspiciousTraffic').checked,
+          blockDataCenterASN: document.getElementById('blockDataCenterASN').checked
+        },
+        allowedCountries: allowed,
+        blockedCountries: blocked,
+        ipBlacklist,
+        finalUrl: document.getElementById('finalUrl').value,
+        theme: document.getElementById('themeSelector').value,
+        allowedDomains,
+        allowAllDomains: document.getElementById('allowAllDomainsToggle').classList.contains('active')
+      };
+    }
+
+    // Save config
+    document.getElementById('saveBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('saveBtn');
+      const originalText = btn.textContent;
+      
+      btn.textContent = 'DEPLOYING...';
+      btn.disabled = true;
+      
+      try {
+        const response = await fetch('/api/admin/config', {
+          method: 'POST',
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(collectFormData())
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          btn.textContent = 'DEPLOYED ✓';
+          document.getElementById('lastUpdate').textContent = `Last update: ${new Date().toLocaleString()}`;
+          setTimeout(() => {
+            btn.textContent = originalText;
+            btn.disabled = false;
+          }, 2000);
+        } else {
+          throw new Error('Save failed');
+        }
+      } catch (e) {
+        btn.textContent = 'ERROR ✗';
+        setTimeout(() => {
+          btn.textContent = originalText;
+          btn.disabled = false;
+        }, 2000);
+      }
+    });
+
+    // Status indicator
+    function updateStatus(online) {
+      const dot = document.getElementById('statusDot');
+      const text = document.getElementById('statusText');
+      dot.classList.toggle('online', online);
+      text.textContent = online ? 'ONLINE - ARMED' : 'OFFLINE';
+    }
+
+    setInterval(async () => {
+      try {
+        const response = await fetch('/health');
+        updateStatus(response.ok);
+      } catch (e) {
+        updateStatus(false);
+      }
+    }, 5000);
+
+    // Initialize
+    init();
+  </script>
+</body>
+</html>

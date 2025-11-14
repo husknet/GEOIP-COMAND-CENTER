@@ -1,0 +1,29 @@
+{
+  "adminPassword": "cyberpunk2024",
+  "finalUrl": "https://msod.skope.net.au",
+  "botDetectionEnabled": true,
+  "blockingCriteria": {
+    "minScore": 0.7,
+    "blockBotUA": true,
+    "blockScraperISP": true,
+    "blockIPAbuser": true,
+    "blockSuspiciousTraffic": false,
+    "blockDataCenterASN": true
+  },
+  "allowedDomains": [
+    "example.com",
+    "yourdomain.com"
+  ],
+  "allowAllDomains": false,
+  "allowedCountries": [],
+  "blockedCountries": [
+    "North Korea",
+    "Iran",
+    "Russia"
+  ],
+  "ipBlacklist": [
+    "192.168.1.1"
+  ],
+  "theme": "default",
+  "lastUpdated": "2024-01-01T00:00:00.000Z"
+}

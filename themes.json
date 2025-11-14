@@ -1,0 +1,38 @@
+{
+  "default": {
+    "name": "Default CRT",
+    "bg": "linear-gradient(135deg, #0f0c29, #302b63, #24243e)",
+    "text": "#ffffff",
+    "accent": "#00ff88"
+  },
+  "cyberpunk": {
+    "name": "Cyberpunk 2077",
+    "bg": "linear-gradient(135deg, #ff006e, #8338ec, #3a86ff)",
+    "text": "#ffffff",
+    "accent": "#ffbe0b"
+  },
+  "matrix": {
+    "name": "Matrix Terminal",
+    "bg": "#000000",
+    "text": "#00ff41",
+    "accent": "#ff073a"
+  },
+  "hacker": {
+    "name": "Midnight Hacker",
+    "bg": "#0a0a0a",
+    "text": "#00ffff",
+    "accent": "#ff00ff"
+  },
+  "neon": {
+    "name": "Neon Dreams",
+    "bg": "linear-gradient(135deg, #020024, #090979, #00d4ff)",
+    "text": "#ff00ff",
+    "accent": "#00ffff"
+  },
+  "retro": {
+    "name": "Retro Wave",
+    "bg": "linear-gradient(135deg, #ff6b6b, #4ecdc4, #45b7d1)",
+    "text": "#ffe66d",
+    "accent": "#ff6b6b"
+  }
+}

