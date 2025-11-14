@@ -7,6 +7,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/typed.js/2.0.12/typed.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
+/* [ALL THE CSS FROM PREVIOUS RESPONSE GOES HERE - COPY IT EXACTLY] */
 :root {
   --bg-primary: #0a0a0f;
   --bg-secondary: #1a1a2e;
@@ -21,12 +22,7 @@
   --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
+* { box-sizing: border-box; margin: 0; padding: 0; }
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   background: var(--bg-primary);
@@ -34,13 +30,7 @@ body {
   line-height: 1.6;
   min-height: 100vh;
 }
-
-.container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
+.container { max-width: 1400px; margin: 0 auto; padding: 20px; }
 header {
   text-align: center;
   padding: 30px 0;
@@ -49,7 +39,6 @@ header {
   border-radius: var(--border-radius);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
-
 h1 {
   font-size: 2.5rem;
   font-weight: 700;
@@ -59,13 +48,7 @@ h1 {
   background-clip: text;
   margin-bottom: 5px;
 }
-
-.version {
-  color: var(--text-secondary);
-  font-weight: 500;
-}
-
-/* Dashboard Theme Selector */
+.version { color: var(--text-secondary); font-weight: 500; }
 .dashboard-theme {
   position: absolute;
   top: 20px;
@@ -74,7 +57,6 @@ h1 {
   align-items: center;
   gap: 8px;
 }
-
 .dashboard-theme select {
   background: var(--bg-tertiary);
   color: var(--text-primary);
@@ -85,19 +67,13 @@ h1 {
   cursor: pointer;
   transition: var(--transition);
 }
-
-.dashboard-theme select:hover {
-  border-color: var(--accent-green);
-}
-
-/* Login Screen */
+.dashboard-theme select:hover { border-color: var(--accent-green); }
 .login-screen {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 80vh;
 }
-
 .login-box {
   background: var(--bg-secondary);
   border-radius: var(--border-radius);
@@ -106,7 +82,6 @@ h1 {
   max-width: 450px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
-
 .login-box h2 {
   font-size: 1.8rem;
   font-weight: 600;
@@ -114,8 +89,6 @@ h1 {
   text-align: center;
   color: var(--text-primary);
 }
-
-/* Modern Inputs */
 input[type="password"],
 input[type="text"],
 textarea,
@@ -131,7 +104,6 @@ select {
   transition: var(--transition);
   margin-bottom: 15px;
 }
-
 input:focus,
 textarea:focus,
 select:focus {
@@ -139,13 +111,7 @@ select:focus {
   border-color: var(--accent-green);
   box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.1);
 }
-
-textarea {
-  min-height: 100px;
-  resize: vertical;
-}
-
-/* Modern Buttons */
+textarea { min-height: 100px; resize: vertical; }
 button {
   background: linear-gradient(135deg, var(--accent-green), #00cc70);
   color: var(--bg-primary);
@@ -160,23 +126,9 @@ button {
   letter-spacing: 0.5px;
   box-shadow: 0 4px 12px rgba(0, 255, 136, 0.2);
 }
-
-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 255, 136, 0.3);
-}
-
-button:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(0, 255, 136, 0.2);
-}
-
-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Save Button */
+button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 255, 136, 0.3); }
+button:active { transform: translateY(0); box-shadow: 0 2px 8px rgba(0, 255, 136, 0.2); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
 .save-btn {
   position: fixed;
   bottom: 80px;
@@ -185,19 +137,42 @@ button:disabled {
   box-shadow: 0 4px 20px rgba(179, 102, 255, 0.3);
   z-index: 1000;
 }
-
-.save-btn:hover {
-  box-shadow: 0 6px 24px rgba(179, 102, 255, 0.4);
+.save-btn:hover { box-shadow: 0 6px 24px rgba(179, 102, 255, 0.4); }
+.panel { display: none; }
+.panel.active { display: block; }
+.typewriter {
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius);
+  padding: 20px;
+  margin-bottom: 30px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  color: var(--accent-green);
+  min-height: 120px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
-
-/* Toggle Switch */
+.section {
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius);
+  padding: 25px;
+  margin-bottom: 25px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+.section h2 {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 .toggle-switch {
   display: inline-flex;
   align-items: center;
   gap: 12px;
   margin: 15px 0;
 }
-
 .switch {
   position: relative;
   width: 48px;
@@ -207,11 +182,7 @@ button:disabled {
   cursor: pointer;
   transition: var(--transition);
 }
-
-.switch.active {
-  background: var(--accent-green);
-}
-
+.switch.active { background: var(--accent-green); }
 .switch::after {
   content: '';
   position: absolute;
@@ -224,64 +195,17 @@ button:disabled {
   transition: var(--transition);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
-
-.switch.active::after {
-  left: 26px;
-}
-
-/* Sections */
-.panel {
-  display: none;
-}
-
-.panel.active {
-  display: block;
-}
-
-.typewriter {
-  background: var(--bg-secondary);
-  border-radius: var(--border-radius);
-  padding: 20px;
-  margin-bottom: 30px;
-  font-family: 'Courier New', monospace;
-  font-size: 0.9rem;
-  color: var(--accent-green);
-  min-height: 120px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-}
-
-.section {
-  background: var(--bg-secondary);
-  border-radius: var(--border-radius);
-  padding: 25px;
-  margin-bottom: 25px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-}
-
-.section h2 {
-  font-size: 1.4rem;
-  font-weight: 600;
-  margin-bottom: 20px;
-  color: var(--text-primary);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-/* Grid Layouts */
+.switch.active::after { left: 26px; }
 .grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 25px;
 }
-
 .grid-3 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;
 }
-
-/* Country Grids */
 .country-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -292,7 +216,6 @@ button:disabled {
   background: var(--bg-tertiary);
   border-radius: var(--border-radius);
 }
-
 .country-item {
   padding: 8px 12px;
   border-radius: 4px;
@@ -300,24 +223,17 @@ button:disabled {
   transition: var(--transition);
   font-size: 0.9rem;
 }
-
-.country-item:hover {
-  background: rgba(0, 255, 136, 0.1);
-}
-
+.country-item:hover { background: rgba(0, 255, 136, 0.1); }
 .country-item.selected {
   background: var(--accent-green);
   color: var(--bg-primary);
   font-weight: 500;
 }
-
-/* Criteria Grid */
 .criteria-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 15px;
 }
-
 .criteria-item {
   display: flex;
   align-items: center;
@@ -327,8 +243,6 @@ button:disabled {
   border-radius: var(--border-radius);
   font-size: 0.9rem;
 }
-
-/* Range Slider */
 input[type="range"] {
   width: 100%;
   height: 6px;
@@ -337,7 +251,6 @@ input[type="range"] {
   outline: none;
   margin: 20px 0;
 }
-
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 18px;
@@ -347,12 +260,7 @@ input[type="range"]::-webkit-slider-thumb {
   cursor: pointer;
   transition: var(--transition);
 }
-
-input[type="range"]::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
-}
-
-/* Theme Preview */
+input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 .theme-preview {
   width: 100%;
   height: 80px;
@@ -364,20 +272,16 @@ input[type="range"]::-webkit-slider-thumb:hover {
   font-weight: 600;
   margin-top: 10px;
 }
-
-/* Error Legend */
 .error-code-legend {
   background: var(--bg-tertiary);
   border-radius: var(--border-radius);
   padding: 20px;
   margin-top: 20px;
 }
-
 .error-code-legend h3 {
   color: var(--accent-purple);
   margin-bottom: 15px;
 }
-
 .error-code-item {
   display: flex;
   align-items: center;
@@ -385,18 +289,12 @@ input[type="range"]::-webkit-slider-thumb:hover {
   padding: 8px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
-
-.error-code-item:last-child {
-  border-bottom: none;
-}
-
+.error-code-item:last-child { border-bottom: none; }
 .error-code {
   color: var(--accent-red);
   font-weight: 600;
   font-family: 'Courier New', monospace;
 }
-
-/* Status Bar */
 .status-bar {
   position: fixed;
   bottom: 0;
@@ -411,13 +309,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
   font-size: 0.85rem;
   z-index: 100;
 }
-
-.status-indicator {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
+.status-indicator { display: flex; align-items: center; gap: 8px; }
 .status-dot {
   width: 10px;
   height: 10px;
@@ -425,33 +317,15 @@ input[type="range"]::-webkit-slider-thumb:hover {
   background: var(--accent-red);
   transition: var(--transition);
 }
-
-.status-dot.online {
-  background: var(--accent-green);
-}
-
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--bg-tertiary);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--accent-green);
-  border-radius: 4px;
-}
-
-/* Responsive */
+.status-dot.online { background: var(--accent-green); }
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-tertiary); }
+::-webkit-scrollbar-thumb { background: var(--accent-green); border-radius: 4px; }
 @media (max-width: 768px) {
   h1 { font-size: 1.8rem; }
   .login-box { padding: 30px 20px; }
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
 }
-
-/* Theme Variants */
 body.light-theme {
   --bg-primary: #f5f7fa;
   --bg-secondary: #ffffff;
@@ -485,7 +359,6 @@ body.light-theme {
       <select id="dashboardThemeSelector">
         <option value="dark">Dark Mode</option>
         <option value="light">Light Mode</option>
-        <option value="cyber">Cyber Neon</option>
       </select>
     </div>
 
@@ -505,13 +378,8 @@ body.light-theme {
         <div class="switch" id="allowAllDomainsToggle"></div>
         <span id="allowAllDomainsStatus" style="font-weight: 500;">DISABLED</span>
       </div>
-      <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 15px;">
-        When disabled, only listed domains can load the SDK
-      </p>
       <textarea id="allowedDomains" placeholder="example.com&#10;yourdomain.com&#10;app.net"></textarea>
-      <p style="font-size: 0.85rem; color: var(--accent-green); margin-top: 8px;">
-        One domain per line (e.g., example.com)
-      </p>
+      <p style="font-size: 0.85rem; color: var(--accent-green); margin-top: 8px;">One domain per line</p>
     </div>
 
     <!-- Bot Detection -->
@@ -524,26 +392,11 @@ body.light-theme {
       </div>
 
       <div class="criteria-grid">
-        <div class="criteria-item">
-          <label>Block Bot User-Agent</label>
-          <input type="checkbox" id="blockBotUA">
-        </div>
-        <div class="criteria-item">
-          <label>Block Scraper ISP</label>
-          <input type="checkbox" id="blockScraperISP">
-        </div>
-        <div class="criteria-item">
-          <label>Block IP Abuser</label>
-          <input type="checkbox" id="blockIPAbuser">
-        </div>
-        <div class="criteria-item">
-          <label>Block Suspicious Traffic</label>
-          <input type="checkbox" id="blockSuspiciousTraffic">
-        </div>
-        <div class="criteria-item">
-          <label>Block Data Center ASN</label>
-          <input type="checkbox" id="blockDataCenterASN">
-        </div>
+        <div class="criteria-item"><label>Block Bot User-Agent</label><input type="checkbox" id="blockBotUA"></div>
+        <div class="criteria-item"><label>Block Scraper ISP</label><input type="checkbox" id="blockScraperISP"></div>
+        <div class="criteria-item"><label>Block IP Abuser</label><input type="checkbox" id="blockIPAbuser"></div>
+        <div class="criteria-item"><label>Block Suspicious Traffic</label><input type="checkbox" id="blockSuspiciousTraffic"></div>
+        <div class="criteria-item"><label>Block Data Center ASN</label><input type="checkbox" id="blockDataCenterASN"></div>
       </div>
 
       <div style="margin-top: 20px;">
@@ -558,60 +411,33 @@ body.light-theme {
     <div class="section">
       <h2>🌍 Geographic Firewall</h2>
       <div style="margin-bottom: 15px;">
-        <button id="allowAllCountriesBtn" style="background: var(--accent-purple); font-size: 0.9rem; padding: 10px 20px;">
-          Allow All Countries
-        </button>
-        <span style="margin-left: 15px; color: var(--text-secondary); font-size: 0.85rem;">
-          Ctrl+Click to select multiple countries
-        </span>
+        <button id="allowAllCountriesBtn" style="background: var(--accent-purple); font-size: 0.9rem; padding: 10px 20px;">Allow All Countries</button>
+        <span style="margin-left: 15px; color: var(--text-secondary); font-size: 0.85rem;">Ctrl+Click to select multiple</span>
       </div>
-      <div class="grid-2" style="margin-top: 10px;">
-        <div>
-          <h3 style="color: var(--accent-green); font-size: 1.1rem; margin-bottom: 10px;">Allowed Countries</h3>
-          <div class="country-grid" id="allowedCountries"></div>
-        </div>
-        <div>
-          <h3 style="color: var(--accent-red); font-size: 1.1rem; margin-bottom: 10px;">Blocked Countries</h3>
-          <div class="country-grid" id="blockedCountries"></div>
-        </div>
+      <div class="grid-2">
+        <div><h3 style="color: var(--accent-green); font-size: 1.1rem; margin-bottom: 10px;">Allowed Countries</h3><div class="country-grid" id="allowedCountries"></div></div>
+        <div><h3 style="color: var(--accent-red); font-size: 1.1rem; margin-bottom: 10px;">Blocked Countries</h3><div class="country-grid" id="blockedCountries"></div></div>
       </div>
     </div>
 
     <!-- IP Blacklist -->
     <div class="section">
       <h2>🚫 IP Blacklist</h2>
-      <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 10px;">One IP per line</p>
       <textarea id="ipBlacklist" placeholder="192.168.1.1&#10;10.0.0.5"></textarea>
     </div>
 
     <!-- Theme Selector -->
     <div class="section">
       <h2>🎨 Block Page Theme</h2>
-      <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 15px;">Select visual theme for blocked users</p>
       <div class="grid-3">
-        <div>
-          <label style="font-weight: 500;">Theme:</label>
-          <select id="themeSelector" style="margin-top: 8px;">
-            <option value="default">Default CRT</option>
-            <option value="cyberpunk">Cyberpunk 2077</option>
-            <option value="matrix">Matrix Terminal</option>
-            <option value="hacker">Midnight Hacker</option>
-            <option value="neon">Neon Dreams</option>
-            <option value="retro">Retro Wave</option>
-          </select>
-        </div>
-        <div style="grid-column: span 2;">
-          <div class="theme-preview" id="themePreview">PREVIEW</div>
-        </div>
+        <div><label style="font-weight: 500;">Theme:</label><select id="themeSelector" style="margin-top: 8px;"><option value="default">Default CRT</option><option value="cyberpunk">Cyberpunk 2077</option><option value="matrix">Matrix Terminal</option><option value="hacker">Midnight Hacker</option><option value="neon">Neon Dreams</option><option value="retro">Retro Wave</option></select></div>
+        <div style="grid-column: span 2;"><div class="theme-preview" id="themePreview">PREVIEW</div></div>
       </div>
     </div>
 
     <!-- Error Code Legend -->
     <div class="section">
       <h2>🛡️ Error Code Legend</h2>
-      <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 15px;">
-        These codes are shown to blocked users. Only you know what they mean.
-      </p>
       <div class="error-code-legend">
         <div class="error-code-item"><span class="error-code">ERR-BOT-HIGH</span><span>Bot score exceeded threshold</span></div>
         <div class="error-code-item"><span class="error-code">ERR-COUNTRY-BLOCK</span><span>Country is blocked</span></div>
@@ -629,9 +455,6 @@ body.light-theme {
     <div class="section">
       <h2>🎯 Final Redirect URL</h2>
       <input type="text" id="finalUrl" placeholder="https://yoursite.com">
-      <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 8px;">
-        URL parameters preserved automatically
-      </p>
     </div>
 
     <!-- Save Button -->
@@ -640,18 +463,295 @@ body.light-theme {
 
   <!-- Status Bar -->
   <div class="status-bar">
-    <div class="status-indicator">
-      <div class="status-dot" id="statusDot"></div>
-      <span id="statusText">OFFLINE</span>
-    </div>
+    <div class="status-indicator"><div class="status-dot" id="statusDot"></div><span id="statusText">OFFLINE</span></div>
     <div id="lastUpdate">Last update: Never</div>
   </div>
 </div>
 
 <script>
-// ... ALL YOUR EXISTING JAVASCRIPT GOES HERE (unchanged) ...
+// ==================== CORE JAVASCRIPT ====================
 
-// ADD THIS for dashboard theme switching
+const typewriterText = [
+  "INITIALIZING GEO-IP CONTROL STATION v3.1...",
+  "DOMAIN WHITELIST ACTIVE. Only approved domains can load the SDK.",
+  "Error codes are cryptic - attackers can't learn bypass techniques.",
+  "'Allow All Countries' button added for quick geo-fence disable.",
+  "Use the domain list to control which sites can embed your SDK.",
+  "System armed with stealth protocols. Ready."
+].join('\n\n');
+
+const COUNTRIES = [
+  "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan",
+  "Bahamas", "Bahrain", "Bangladesh", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia", "Botswana",
+  "Brazil", "Brunei", "Bulgaria", "Burkina", "Burundi", "Cambodia", "Cameroon", "Canada", "Chad", "Chile", "China", "Colombia",
+  "Congo", "Croatia", "Cuba", "Cyprus", "Czech", "Denmark", "Ecuador", "Egypt", "Eritrea", "Estonia", "Eswatini", "Ethiopia",
+  "Fiji", "Finland", "France", "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea",
+  "Guyana", "Haiti", "Honduras", "Hungary", "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy",
+  "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", "Korea", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", "Lebanon", "Lesotho",
+  "Liberia", "Libya", "Lithuania", "Luxembourg", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Mauritania",
+  "Mauritius", "Mexico", "Moldova", "Monaco", "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar", "Namibia", "Nepal",
+  "Netherlands", "New Zealand", "Nicaragua", "Niger", "Nigeria", "Norway", "Oman", "Pakistan", "Panama", "Papua", "Paraguay",
+  "Peru", "Philippines", "Poland", "Portugal", "Qatar", "Romania", "Russia", "Rwanda", "Samoa", "Senegal", "Serbia", "Seychelles",
+  "Sierra", "Singapore", "Slovakia", "Slovenia", "Somalia", "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland",
+  "Syria", "Taiwan", "Tanzania", "Thailand", "Togo", "Tonga", "Trinidad", "Tunisia", "Turkey", "UAE", "UK", "USA", "Uruguay",
+  "Uzbekistan", "Vanuatu", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe"
+];
+
+let token = null;
+let currentConfig = {};
+let themes = {};
+
+// Initialize
+async function init() {
+  themes = await loadThemes();
+}
+
+async function loadThemes() {
+  try {
+    const response = await fetch('/api/themes');
+    if (response.ok) return await response.json();
+  } catch (e) {
+    console.error('Failed to load themes');
+  }
+  return {};
+}
+
+// Login Handler
+document.getElementById('loginBtn').addEventListener('click', async () => {
+  const password = document.getElementById('passwordInput').value;
+  const errorDiv = document.getElementById('loginError');
+
+  try {
+    const response = await fetch('/api/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password })
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      token = data.token;
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('mainPanel').classList.add('active');
+      initTypewriter();
+      loadConfig();
+      updateStatus(true);
+    } else {
+      errorDiv.style.display = 'block';
+      document.getElementById('passwordInput').value = '';
+      document.getElementById('passwordInput').focus();
+    }
+  } catch (e) {
+    errorDiv.style.display = 'block';
+  }
+});
+
+document.getElementById('passwordInput').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') document.getElementById('loginBtn').click();
+});
+
+function initTypewriter() {
+  const typed = new Typed('#typewriter', {
+    strings: [typewriterText],
+    typeSpeed: 20,
+    backSpeed: 0,
+    showCursor: true,
+    cursorChar: '_'
+  });
+}
+
+async function loadConfig() {
+  try {
+    const response = await fetch('/api/admin/config', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (response.ok) {
+      currentConfig = await response.json();
+      populateUi(currentConfig);
+    }
+  } catch (e) {
+    console.error('Failed to load config');
+  }
+}
+
+function populateUi(config) {
+  // Domain whitelist
+  document.getElementById('allowAllDomainsToggle').classList.toggle('active', config.allowAllDomains);
+  document.getElementById('allowAllDomainsStatus').textContent = config.allowAllDomains ? 'ENABLED' : 'DISABLED';
+  document.getElementById('allowedDomains').value = (config.allowedDomains || []).join('\n');
+
+  // Bot detection
+  document.getElementById('botToggle').classList.toggle('active', config.botDetectionEnabled);
+  document.getElementById('botStatus').textContent = config.botDetectionEnabled ? 'ENABLED' : 'DISABLED';
+
+  // Criteria
+  const criteria = config.blockingCriteria || {};
+  document.getElementById('blockBotUA').checked = criteria.blockBotUA;
+  document.getElementById('blockScraperISP').checked = criteria.blockScraperISP;
+  document.getElementById('blockIPAbuser').checked = criteria.blockIPAbuser;
+  document.getElementById('blockSuspiciousTraffic').checked = criteria.blockSuspiciousTraffic;
+  document.getElementById('blockDataCenterASN').checked = criteria.blockDataCenterASN;
+  document.getElementById('minScore').value = criteria.minScore || 0.7;
+  document.getElementById('scoreValue').textContent = criteria.minScore || 0.7;
+
+  // Countries
+  populateCountries('allowedCountries', config.allowedCountries || []);
+  populateCountries('blockedCountries', config.blockedCountries || []);
+
+  // IP Blacklist
+  document.getElementById('ipBlacklist').value = (config.ipBlacklist || []).join('\n');
+
+  // Final URL
+  document.getElementById('finalUrl').value = config.finalUrl || '';
+
+  // Theme
+  document.getElementById('themeSelector').value = config.theme || 'default';
+  updateThemePreview(config.theme || 'default');
+
+  // Update time
+  document.getElementById('lastUpdate').textContent = `Last update: ${new Date(config.lastUpdated).toLocaleString()}`;
+}
+
+function populateCountries(elementId, selectedCountries) {
+  const container = document.getElementById(elementId);
+  container.innerHTML = '';
+  COUNTRIES.forEach(country => {
+    const item = document.createElement('div');
+    item.className = 'country-item';
+    item.textContent = country;
+    if (selectedCountries.includes(country)) item.classList.add('selected');
+    item.addEventListener('click', (e) => e.target.classList.toggle('selected'));
+    container.appendChild(item);
+  });
+}
+
+// Event Listeners
+document.getElementById('allowAllCountriesBtn').addEventListener('click', () => {
+  document.querySelectorAll('#blockedCountries .selected').forEach(item => {
+    item.classList.remove('selected');
+  });
+  document.querySelectorAll('#allowedCountries .country-item').forEach(item => {
+    item.classList.add('selected');
+  });
+  alert('✓ All countries allowed. Remember to DEPLOY CONFIG.');
+});
+
+document.getElementById('allowAllDomainsToggle').addEventListener('click', function() {
+  this.classList.toggle('active');
+  const status = document.getElementById('allowAllDomainsStatus');
+  status.textContent = this.classList.contains('active') ? 'ENABLED' : 'DISABLED';
+  status.style.color = this.classList.contains('active') ? 'var(--accent-green)' : 'var(--accent-red)';
+});
+
+document.getElementById('botToggle').addEventListener('click', function() {
+  this.classList.toggle('active');
+  const status = document.getElementById('botStatus');
+  status.textContent = this.classList.contains('active') ? 'ENABLED' : 'DISABLED';
+  status.style.color = this.classList.contains('active') ? 'var(--accent-green)' : 'var(--accent-red)';
+});
+
+document.getElementById('minScore').addEventListener('input', function() {
+  document.getElementById('scoreValue').textContent = this.value;
+});
+
+document.getElementById('themeSelector').addEventListener('change', (e) => {
+  updateThemePreview(e.target.value);
+});
+
+function updateThemePreview(themeId) {
+  const theme = themes[themeId] || themes.default;
+  const preview = document.getElementById('themePreview');
+  if (!theme || !preview) return;
+
+  preview.style.background = theme.bg;
+  preview.style.color = theme.text;
+  preview.style.textShadow = `0 0 10px ${theme.accent}`;
+  preview.textContent = `${theme.name.toUpperCase()} - THEME ACTIVE`;
+}
+
+function collectFormData() {
+  const allowedDomains = document.getElementById('allowedDomains').value.split('\n').map(d => d.trim()).filter(d => d);
+  const allowed = Array.from(document.querySelectorAll('#allowedCountries .selected')).map(el => el.textContent);
+  const blocked = Array.from(document.querySelectorAll('#blockedCountries .selected')).map(el => el.textContent);
+  const ipBlacklist = document.getElementById('ipBlacklist').value.split('\n').map(ip => ip.trim()).filter(ip => ip);
+
+  return {
+    botDetectionEnabled: document.getElementById('botToggle').classList.contains('active'),
+    blockingCriteria: {
+      minScore: parseFloat(document.getElementById('minScore').value),
+      blockBotUA: document.getElementById('blockBotUA').checked,
+      blockScraperISP: document.getElementById('blockScraperISP').checked,
+      blockIPAbuser: document.getElementById('blockIPAbuser').checked,
+      blockSuspiciousTraffic: document.getElementById('blockSuspiciousTraffic').checked,
+      blockDataCenterASN: document.getElementById('blockDataCenterASN').checked
+    },
+    allowedCountries: allowed,
+    blockedCountries: blocked,
+    ipBlacklist,
+    finalUrl: document.getElementById('finalUrl').value,
+    theme: document.getElementById('themeSelector').value,
+    allowedDomains,
+    allowAllDomains: document.getElementById('allowAllDomainsToggle').classList.contains('active')
+  };
+}
+
+// Save Config
+document.getElementById('saveBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('saveBtn');
+  const originalText = btn.textContent;
+
+  btn.textContent = 'DEPLOYING...';
+  btn.disabled = true;
+
+  try {
+    const response = await fetch('/api/admin/config', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(collectFormData())
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      btn.textContent = 'DEPLOYED ✓';
+      document.getElementById('lastUpdate').textContent = `Last update: ${new Date().toLocaleString()}`;
+      setTimeout(() => {
+        btn.textContent = originalText;
+        btn.disabled = false;
+      }, 2000);
+    } else {
+      throw new Error('Save failed');
+    }
+  } catch (e) {
+    btn.textContent = 'ERROR ✗';
+    setTimeout(() => {
+      btn.textContent = originalText;
+      btn.disabled = false;
+    }, 2000);
+  }
+});
+
+// Status Indicator
+function updateStatus(online) {
+  const dot = document.getElementById('statusDot');
+  const text = document.getElementById('statusText');
+  dot.classList.toggle('online', online);
+  text.textContent = online ? 'ONLINE - ARMED' : 'OFFLINE';
+}
+
+setInterval(async () => {
+  try {
+    const response = await fetch('/health');
+    updateStatus(response.ok);
+  } catch (e) {
+    updateStatus(false);
+  }
+}, 5000);
+
+// Dashboard Theme Switcher
 document.getElementById('dashboardThemeSelector').addEventListener('change', (e) => {
   const theme = e.target.value;
   const body = document.body;
@@ -662,7 +762,6 @@ document.getElementById('dashboardThemeSelector').addEventListener('change', (e)
     body.classList.remove('light-theme');
   }
   
-  // You can add more themes (cyber, etc.) by extending the CSS
   localStorage.setItem('dashboardTheme', theme);
 });
 
@@ -672,6 +771,9 @@ document.getElementById('dashboardThemeSelector').value = savedTheme;
 if (savedTheme === 'light') {
   document.body.classList.add('light-theme');
 }
+
+// Initialize
+init();
 </script>
 </body>
 </html>
