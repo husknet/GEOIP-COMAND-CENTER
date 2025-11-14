@@ -5,6 +5,10 @@
   const CONFIG_POLL_INTERVAL = 30000;
   const SDK_CONFIG_KEY = '__geoIPControlConfig';
   
+  // === HARDCODED API URL - Provided only once ===
+  const API_BASE_URL = 'https://geoip-comand-center-production.up.railway.app';
+  // ==============================================
+  
   // ERROR CODE MAPPING - Admin-only knowledge
   const ERROR_CODES = {
     'ERR-BOT-HIGH': 'Bot score exceeded threshold',
@@ -26,17 +30,7 @@
   let config = null;
   let pollInterval = null;
   
-  // NEW: Get base URL from global config or use current origin
-  function getBaseUrl() {
-    // Check if base URL is configured globally
-    if (window.GeoIPControlSDK_CONFIG?.apiBaseUrl) {
-      console.log('SDK: Using configured base URL:', window.GeoIPControlSDK_CONFIG.apiBaseUrl);
-      return window.GeoIPControlSDK_CONFIG.apiBaseUrl;
-    }
-    // Fallback to current origin (original behavior)
-    console.log('SDK: No config found, using current origin:', window.location.origin);
-    return window.location.origin;
-  }
+  // REMOVED: getBaseUrl() function - no longer needed with hardcoded URL
   
   async function getIP() {
     return fetch('https://api.ipify.org?format=json')
@@ -50,9 +44,8 @@
   
   async function pollConfig() {
     try {
-      // MODIFIED: Use full URL with base URL
-      const baseUrl = getBaseUrl();
-      const configUrl = `${baseUrl}/api/config`;
+      // HARDCODED: Config URL now uses the hardcoded base URL
+      const configUrl = `${API_BASE_URL}/api/config`;
       console.log('SDK: Fetching config from:', configUrl);
       
       const response = await fetch(configUrl, {
@@ -87,9 +80,8 @@
   
   async function checkGeoIP(ip) {
     try {
-      // MODIFIED: Use full URL
-      const baseUrl = getBaseUrl();
-      const geoipUrl = `${baseUrl}/api/geoip/${ip}`;
+      // HARDCODED: GeoIP URL now uses the hardcoded base URL
+      const geoipUrl = `${API_BASE_URL}/api/geoip/${ip}`;
       console.log('SDK: Checking GeoIP at:', geoipUrl);
       
       const response = await fetch(geoipUrl);
@@ -104,9 +96,8 @@
   
   async function checkBotDetection(ip, userAgent) {
     try {
-      // MODIFIED: Use full URL
-      const baseUrl = getBaseUrl();
-      const botDetectUrl = `${baseUrl}/api/bot-detect`;
+      // HARDCODED: Bot detection URL now uses the hardcoded base URL
+      const botDetectUrl = `${API_BASE_URL}/api/bot-detect`;
       console.log('SDK: Checking bot detection at:', botDetectUrl);
       
       const response = await fetch(botDetectUrl, {
