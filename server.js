@@ -65,7 +65,82 @@ app.use(async (req, res, next) => {
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({ limit: '10mb' }));
 
-// ===== FIX 1: CORP header for /sdk.js (KEEP THIS) =====
+// ===== HELPER FUNCTION: Whitelist Check =====
+function isOriginAllowed(req) {
+  const origin = req.get('origin');
+  const config = req.app.locals.config;
+  const allowedDomains = config.allowedDomains || [];
+  const allowAllDomains = config.allowAllDomains || false;
+
+  if (allowAllDomains) return true;
+  if (!origin) return true; // Allow direct browser requests
+
+  try {
+    const originHostname = new URL(origin).hostname;
+    return allowedDomains.some(domain => 
+      originHostname === domain || originHostname.endsWith('.' + domain)
+    );
+  } catch {
+    return false;
+  }
+}
+
+// ===== CRITICAL: Centralized CORS + Whitelist Enforcement =====
+// This replaces all previous CORS middleware blocks
+app.use((req, res, next) => {
+  const origin = req.get('origin');
+
+  // Handle OPTIONS preflight FIRST (before path checks)
+  if (req.method === 'OPTIONS') {
+    // CRITICAL: Check whitelist even for preflight
+    if (req.path.startsWith('/api') && !req.path.startsWith('/api/admin')) {
+      if (isOriginAllowed(req)) {
+        // Allowed: respond with CORS headers
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-SDK-Version');
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+        res.setHeader('Vary', 'Origin');
+        return res.status(200).end();
+      } else {
+        // Blocked: return 403 WITHOUT CORS headers
+        // This forces browser to block the real request
+        return res.status(403).json({ error: 'ERR-DOMAIN-BLOCKED' });
+      }
+    }
+    
+    // Admin preflight always passes
+    if (req.path.startsWith('/api/admin')) {
+      res.setHeader('Access-Control-Allow-Origin', origin || '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      return res.status(200).end();
+    }
+    
+    return res.status(200).end();
+  }
+
+  // Handle actual API requests
+  if (req.path.startsWith('/api') && !req.path.startsWith('/api/admin')) {
+    if (isOriginAllowed(req)) {
+      // Add CORS headers and proceed
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Vary', 'Origin');
+      next();
+    } else {
+      // Block unauthorized domains
+      res.status(403).json({ error: 'ERR-DOMAIN-BLOCKED' });
+    }
+    return;
+  }
+
+  // Continue for non-API routes
+  next();
+});
+
+// ===== SDK.js endpoint (unchanged) =====
 app.use('/sdk.js', (req, res, next) => {
   const origin = req.get('origin');
   const config = req.app.locals.config;
@@ -96,66 +171,10 @@ app.use('/sdk.js', (req, res, next) => {
   }
 });
 
-// ===== FIX 2: Admin API bypass (ADD THIS) =====
-app.use('/api/admin', (req, res, next) => {
-  // Admin API always allows same-origin and admin panel access
-  res.setHeader('Access-Control-Allow-Origin', req.get('origin') || '*');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-  next();
-});
-
 // Serve static files
 app.use(express.static('public'));
 
-// CORS for other API endpoints
-app.use((req, res, next) => {
-  const origin = req.get('origin');
-  const config = req.app.locals.config;
-  const allowedDomains = config.allowedDomains || [];
-  const allowAllDomains = config.allowAllDomains || false;
-
-  const isOriginAllowed = (originToCheck) => {
-    if (!originToCheck) return true;
-    if (allowAllDomains) return true;
-    try {
-      const originHostname = new URL(originToCheck).hostname;
-      return allowedDomains.some(domain => 
-        originHostname === domain || originHostname.endsWith('.' + domain)
-      );
-    } catch {
-      return false;
-    }
-  };
-
-  if (req.path.startsWith('/api') && !req.path.startsWith('/api/admin')) {
-    if (isOriginAllowed(origin)) {
-      cors({ origin: origin || true, credentials: true })(req, res, next);
-    } else {
-      res.status(403).json({ error: 'ERR-DOMAIN-BLOCKED' });
-    }
-    return;
-  }
-
-  if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-SDK-Version');
-    res.setHeader('Vary', 'Origin');
-    return res.status(200).end();
-  }
-
-  next();
-});
-
-// ============= NEW HELPER FUNCTION =============
-// Check if request origin is a whitelisted domain
+// ===== HELPER FUNCTION: Rate Limit Skip Logic =====
 function isWhitelistedDomain(req) {
   const config = req.app.locals.config;
   if (!config) return false;
@@ -164,34 +183,25 @@ function isWhitelistedDomain(req) {
   const allowedDomains = config.allowedDomains || [];
   const allowAllDomains = config.allowAllDomains || false;
 
-  // If "Allow All Domains" is enabled, grant unlimited access
   if (allowAllDomains) return true;
-  
-  // No origin header = not a browser request, apply rate limit
   if (!origin) return false;
 
   try {
     const originHostname = new URL(origin).hostname;
-    
-    // Check if origin matches any whitelisted domain (exact or subdomain)
     return allowedDomains.some(domain => {
-      // Exact match: example.com === example.com
-      // Subdomain match: app.example.com ends with .example.com
       return originHostname === domain || originHostname.endsWith('.' + domain);
     });
   } catch (e) {
-    console.error('Invalid origin URL:', origin, e);
-    return false; // Malformed URL = apply rate limit
+    return false;
   }
 }
 
-// ============= REPLACE RATE LIMITER =============
-// Rate limiting - skip for admin and whitelisted domains
+// ===== Rate limiting - skip for admin and whitelisted domains =====
 app.use('/api/', rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Max requests per window for non-whitelisted domains
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   message: { error: 'ERR-RATE-LIMIT' },
-  standardHeaders: true, // Enable X-RateLimit-* headers for debugging
+  standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
     const isAdmin = req.path.startsWith('/api/admin');
