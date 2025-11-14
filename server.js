@@ -154,12 +154,55 @@ app.use((req, res, next) => {
   next();
 });
 
-// Rate limiting (skip for admin)
+// ============= NEW HELPER FUNCTION =============
+// Check if request origin is a whitelisted domain
+function isWhitelistedDomain(req) {
+  const config = req.app.locals.config;
+  if (!config) return false;
+
+  const origin = req.get('origin');
+  const allowedDomains = config.allowedDomains || [];
+  const allowAllDomains = config.allowAllDomains || false;
+
+  // If "Allow All Domains" is enabled, grant unlimited access
+  if (allowAllDomains) return true;
+  
+  // No origin header = not a browser request, apply rate limit
+  if (!origin) return false;
+
+  try {
+    const originHostname = new URL(origin).hostname;
+    
+    // Check if origin matches any whitelisted domain (exact or subdomain)
+    return allowedDomains.some(domain => {
+      // Exact match: example.com === example.com
+      // Subdomain match: app.example.com ends with .example.com
+      return originHostname === domain || originHostname.endsWith('.' + domain);
+    });
+  } catch (e) {
+    console.error('Invalid origin URL:', origin, e);
+    return false; // Malformed URL = apply rate limit
+  }
+}
+
+// ============= REPLACE RATE LIMITER =============
+// Rate limiting - skip for admin and whitelisted domains
 app.use('/api/', rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Max requests per window for non-whitelisted domains
   message: { error: 'ERR-RATE-LIMIT' },
-  skip: (req) => req.path.startsWith('/api/admin') // Don't rate limit admin
+  standardHeaders: true, // Enable X-RateLimit-* headers for debugging
+  legacyHeaders: false,
+  skip: (req) => {
+    const isAdmin = req.path.startsWith('/api/admin');
+    const isWhitelisted = isWhitelistedDomain(req);
+    
+    if (isWhitelisted) {
+      console.log(`Rate limit SKIPPED for whitelisted domain: ${req.get('origin')}`);
+    }
+    
+    return isAdmin || isWhitelisted;
+  }
 }));
 
 // API Routes (unchanged)
@@ -257,4 +300,3 @@ app.listen(PORT, '0.0.0.0', async () => {
   console.log(`🎯 SDK: http://localhost:${PORT}/sdk.js`);
   console.log(`🔒 Domain whitelist active: ${app.locals.config.allowAllDomains ? 'DISABLED' : 'ENABLED'}`);
 });
-
