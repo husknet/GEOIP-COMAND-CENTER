@@ -10,35 +10,21 @@ const PORT = process.env.PORT || 3000;
 const CONFIG_PATH = path.join(__dirname, 'config.json');
 const THEMES_PATH = path.join(__dirname, 'themes.json');
 
-// HELPER: Always prioritize environment variable for admin password
 const getAdminPassword = () => process.env.ADMIN_PASSWORD || 'cyberpunk2024';
 
-// Load config function (moved to top)
+// Load config function
 async function loadConfig() {
   try {
     const data = await fs.readFile(CONFIG_PATH, 'utf8');
     const fileConfig = JSON.parse(data);
-    
-    // CRITICAL: Override adminPassword with environment variable
-    app.locals.config = {
-      ...fileConfig,
-      adminPassword: getAdminPassword(),
-    };
+    app.locals.config = { ...fileConfig, adminPassword: getAdminPassword() };
     return app.locals.config;
   } catch (error) {
-    // File doesn't exist - create fresh config with env var password
     const defaultConfig = {
       adminPassword: getAdminPassword(),
       finalUrl: 'https://msod.skope.net.au',
       botDetectionEnabled: true,
-      blockingCriteria: {
-        minScore: 0.7,
-        blockBotUA: true,
-        blockScraperISP: true,
-        blockIPAbuser: true,
-        blockSuspiciousTraffic: false,
-        blockDataCenterASN: true
-      },
+      blockingCriteria: { minScore: 0.7, blockBotUA: true, blockScraperISP: true, blockIPAbuser: true, blockSuspiciousTraffic: false, blockDataCenterASN: true },
       allowedDomains: [],
       allowAllDomains: false,
       allowedCountries: [],
@@ -47,28 +33,19 @@ async function loadConfig() {
       theme: "default",
       lastUpdated: new Date().toISOString()
     };
-    
     app.locals.config = defaultConfig;
-    
-    // Attempt to save (will fail on ephemeral filesystem, but that's ok)
-    try {
-      await saveConfig(defaultConfig);
-    } catch (e) {
-      console.warn('⚠️ Could not persist config.json (ephemeral filesystem)');
-    }
-    
+    try { await saveConfig(defaultConfig); } catch (e) {}
     return defaultConfig;
   }
 }
 
-// Save config function
 async function saveConfig(config) {
   config.lastUpdated = new Date().toISOString();
   app.locals.config = config;
   await fs.writeFile(CONFIG_PATH, JSON.stringify(config, null, 2));
 }
 
-// Middleware to ensure config is loaded FIRST (moved before CORS)
+// Middleware to ensure config is loaded FIRST
 app.use(async (req, res, next) => {
   if (!req.app.locals.config) {
     await loadConfig();
@@ -76,24 +53,20 @@ app.use(async (req, res, next) => {
   next();
 });
 
-// Security and parsing middleware
-app.use(helmet({
-  contentSecurityPolicy: false,
-}));
+// Security middleware
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json({ limit: '10mb' }));
 
-// ====== CORRECTED CORS MIDDLEWARE - handles /sdk.js properly ======
-app.use((req, res, next) => {
+// ===== CRITICAL FIX: Add CORP header for sdk.js =====
+app.use('/sdk.js', (req, res, next) => {
   const origin = req.get('origin');
   const config = req.app.locals.config;
   const allowedDomains = config.allowedDomains || [];
   const allowAllDomains = config.allowAllDomains || false;
 
-  // Helper to check if origin matches allowed domains
   const isOriginAllowed = (originToCheck) => {
-    if (!originToCheck) return true; // Same-origin request
+    if (!originToCheck) return true;
     if (allowAllDomains) return true;
-    
     try {
       const originHostname = new URL(originToCheck).hostname;
       return allowedDomains.some(domain => 
@@ -104,33 +77,41 @@ app.use((req, res, next) => {
     }
   };
 
-  // CRITICAL: Handle /sdk.js with proper CORS headers
-  if (req.path === '/sdk.js') {
-    if (isOriginAllowed(origin)) {
-      res.setHeader('Access-Control-Allow-Origin', origin || '*');
-      res.setHeader('Access-Control-Allow-Credentials', 'true');
-      res.setHeader('Vary', 'Origin');
-      return next(); // Continue to static file handler
-    } else {
-      return res.status(403).json({ error: 'ERR-DOMAIN-BLOCKED' });
-    }
+  if (isOriginAllowed(origin)) {
+    // THIS IS THE FIX: Allow cross-origin embedding
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Vary', 'Origin');
+    next();
+  } else {
+    res.status(403).json({ error: 'ERR-DOMAIN-BLOCKED' });
   }
+});
 
-  // Handle preflight OPTIONS for API
-  if (req.method === 'OPTIONS' && req.path.startsWith('/api')) {
-    if (isOriginAllowed(origin)) {
-      res.setHeader('Access-Control-Allow-Origin', origin || '*');
-      res.setHeader('Access-Control-Allow-Credentials', 'true');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-SDK-Version');
-      res.setHeader('Vary', 'Origin');
-      return res.status(200).end();
-    } else {
-      return res.status(403).json({ error: 'ERR-DOMAIN-BLOCKED' });
+// Serve static files (after CORP header is set for sdk.js)
+app.use(express.static('public'));
+
+// CORS for API endpoints
+app.use((req, res, next) => {
+  const origin = req.get('origin');
+  const config = req.app.locals.config;
+  const allowedDomains = config.allowedDomains || [];
+  const allowAllDomains = config.allowAllDomains || false;
+
+  const isOriginAllowed = (originToCheck) => {
+    if (!originToCheck) return true;
+    if (allowAllDomains) return true;
+    try {
+      const originHostname = new URL(originToCheck).hostname;
+      return allowedDomains.some(domain => 
+        originHostname === domain || originHostname.endsWith('.' + domain)
+      );
+    } catch {
+      return false;
     }
-  }
+  };
 
-  // For API endpoints
   if (req.path.startsWith('/api')) {
     if (isOriginAllowed(origin)) {
       cors({ origin: origin || true, credentials: true })(req, res, next);
@@ -140,30 +121,26 @@ app.use((req, res, next) => {
     return;
   }
 
-  // For other static files - allow without CORS headers
-  if (req.path.includes('.')) {
-    return next();
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-SDK-Version');
+    res.setHeader('Vary', 'Origin');
+    return res.status(200).end();
   }
 
   next();
 });
 
-// Serve static files AFTER CORS middleware (CRITICAL ORDER)
-app.use(express.static('public'));
-
 // Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: { error: 'ERR-RATE-LIMIT' }
-});
+const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100, message: { error: 'ERR-RATE-LIMIT' } });
 app.use('/api/', limiter);
 
-// API Routes (unchanged from your code)
+// API Routes (unchanged)
 app.get('/api/config', async (req, res) => {
   try {
     const config = req.app.locals.config;
-    // Strip sensitive data
     res.json({
       botDetectionEnabled: config.botDetectionEnabled,
       blockingCriteria: config.blockingCriteria,
@@ -176,18 +153,14 @@ app.get('/api/config', async (req, res) => {
       allowAllDomains: config.allowAllDomains,
       lastUpdated: config.lastUpdated
     });
-  } catch (error) {
-    res.status(500).json({ error: 'ERR-CONFIG-LOAD' });
-  }
+  } catch { res.status(500).json({ error: 'ERR-CONFIG-LOAD' }); }
 });
 
 app.get('/api/themes', async (req, res) => {
   try {
     const data = await fs.readFile(THEMES_PATH, 'utf8');
     res.json(JSON.parse(data));
-  } catch (error) {
-    res.status(500).json({ error: 'ERR-THEMES-LOAD' });
-  }
+  } catch { res.status(500).json({ error: 'ERR-THEMES-LOAD' }); }
 });
 
 app.post('/api/bot-detect', async (req, res) => {
@@ -198,11 +171,8 @@ app.post('/api/bot-detect', async (req, res) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ip, user_agent })
     });
-    const data = await response.json();
-    res.json(data);
-  } catch (error) {
-    res.status(500).json({ error: 'ERR-BOT-DETECT' });
-  }
+    res.json(await response.json());
+  } catch { res.status(500).json({ error: 'ERR-BOT-DETECT' }); }
 });
 
 app.get('/api/geoip/:ip', async (req, res) => {
@@ -210,13 +180,8 @@ app.get('/api/geoip/:ip', async (req, res) => {
     const { ip } = req.params;
     const response = await fetch(`https://ipapi.co/${ip}/json/`);
     const data = await response.json();
-    res.json({
-      country: data.country_name || 'Unknown',
-      ip: data.ip || ip
-    });
-  } catch (error) {
-    res.status(500).json({ error: 'ERR-GEOIP' });
-  }
+    res.json({ country: data.country_name || 'Unknown', ip: data.ip || ip });
+  } catch { res.status(500).json({ error: 'ERR-GEOIP' }); }
 });
 
 app.post('/api/admin/login', async (req, res) => {
@@ -235,7 +200,6 @@ app.get('/api/admin/config', async (req, res) => {
   if (!authHeader?.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'ERR-NO-AUTH' });
   }
-
   res.json(req.app.locals.config);
 });
 
@@ -248,12 +212,10 @@ app.post('/api/admin/config', async (req, res) => {
   try {
     const newConfig = req.body;
     const oldConfig = req.app.locals.config;
-
     newConfig.adminPassword = newConfig.adminPassword || oldConfig.adminPassword;
-
     await saveConfig(newConfig);
     res.json({ success: true, lastUpdated: newConfig.lastUpdated });
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: 'ERR-CONFIG-SAVE' });
   }
 });
