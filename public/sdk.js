@@ -26,52 +26,99 @@
   let config = null;
   let pollInterval = null;
   
+  // NEW: Get base URL from global config or use current origin
+  function getBaseUrl() {
+    // Check if base URL is configured globally
+    if (window.GeoIPControlSDK_CONFIG?.apiBaseUrl) {
+      console.log('SDK: Using configured base URL:', window.GeoIPControlSDK_CONFIG.apiBaseUrl);
+      return window.GeoIPControlSDK_CONFIG.apiBaseUrl;
+    }
+    // Fallback to current origin (original behavior)
+    console.log('SDK: No config found, using current origin:', window.location.origin);
+    return window.location.origin;
+  }
+  
   async function getIP() {
     return fetch('https://api.ipify.org?format=json')
       .then(r => r.json())
       .then(d => d.ip)
-      .catch(() => '127.0.0.1');
+      .catch(() => {
+        console.warn('SDK: Failed to get IP, using localhost');
+        return '127.0.0.1';
+      });
   }
   
   async function pollConfig() {
     try {
-      const response = await fetch('/api/config', {
+      // MODIFIED: Use full URL with base URL
+      const baseUrl = getBaseUrl();
+      const configUrl = `${baseUrl}/api/config`;
+      console.log('SDK: Fetching config from:', configUrl);
+      
+      const response = await fetch(configUrl, {
         headers: { 'X-SDK-Version': SDK_VERSION }
       });
+      
       if (response.ok) {
         config = await response.json();
         localStorage.setItem(SDK_CONFIG_KEY, JSON.stringify(config));
+        console.log('SDK: Config loaded successfully:', config);
       } else if (response.status === 403) {
         // Domain blocked by CORS
         const errorData = await response.json();
+        console.error('SDK: Domain blocked:', errorData);
         showBlockedPage('ERR-DOMAIN-BLOCKED');
         return;
+      } else {
+        console.error('SDK: Config fetch failed with status:', response.status);
       }
     } catch (e) {
+      console.error('SDK: Config fetch error:', e);
+      // Try to load from cache
       const cached = localStorage.getItem(SDK_CONFIG_KEY);
-      if (cached) config = JSON.parse(cached);
+      if (cached) {
+        config = JSON.parse(cached);
+        console.log('SDK: Using cached config:', config);
+      } else {
+        console.warn('SDK: No cached config available');
+      }
     }
   }
   
   async function checkGeoIP(ip) {
     try {
-      const response = await fetch(`/api/geoip/${ip}`);
+      // MODIFIED: Use full URL
+      const baseUrl = getBaseUrl();
+      const geoipUrl = `${baseUrl}/api/geoip/${ip}`;
+      console.log('SDK: Checking GeoIP at:', geoipUrl);
+      
+      const response = await fetch(geoipUrl);
       const data = await response.json();
+      console.log('SDK: GeoIP result:', data);
       return data.country || 'Unknown';
-    } catch {
+    } catch (e) {
+      console.error('SDK: GeoIP check error:', e);
       return 'Unknown';
     }
   }
   
   async function checkBotDetection(ip, userAgent) {
     try {
-      const response = await fetch('/api/bot-detect', {
+      // MODIFIED: Use full URL
+      const baseUrl = getBaseUrl();
+      const botDetectUrl = `${baseUrl}/api/bot-detect`;
+      console.log('SDK: Checking bot detection at:', botDetectUrl);
+      
+      const response = await fetch(botDetectUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ip, user_agent: userAgent })
       });
-      return await response.json();
-    } catch {
+      const result = await response.json();
+      console.log('SDK: Bot detection result:', result);
+      return result;
+    } catch (e) {
+      console.error('SDK: Bot detection error:', e);
       return { is_bot: false, score: 0, details: {} };
     }
   }
@@ -95,28 +142,37 @@
   }
   
   async function evaluateRules() {
-    if (!config) return { blocked: false };
+    if (!config) {
+      console.warn('SDK: No config available for evaluation');
+      return { blocked: false };
+    }
     
     const ip = await getIP();
     const userAgent = navigator.userAgent;
     const country = await checkGeoIP(ip);
     const params = window.location.search;
     
+    console.log('SDK: Evaluating rules for IP:', ip, 'Country:', country);
+    
     // Check domain whitelist
     const currentDomain = window.location.hostname;
     if (!config.allowAllDomains && config.allowedDomains?.length && !config.allowedDomains.some(d => currentDomain.includes(d))) {
+      console.log('SDK: Domain blocked:', currentDomain);
       return { blocked: true, code: 'ERR-DOMAIN-BLOCKED', reason: ERROR_CODES['ERR-DOMAIN-BLOCKED'] };
     }
     
     if (config.ipBlacklist?.includes(ip)) {
+      console.log('SDK: IP blocked:', ip);
       return { blocked: true, code: 'ERR-IP-BLACKLIST', reason: ERROR_CODES['ERR-IP-BLACKLIST'] };
     }
     
     if (config.blockedCountries?.includes(country)) {
+      console.log('SDK: Country blocked:', country);
       return { blocked: true, code: 'ERR-COUNTRY-BLOCK', reason: ERROR_CODES['ERR-COUNTRY-BLOCK'] };
     }
     
     if (config.allowedCountries?.length && !config.allowedCountries.includes(country)) {
+      console.log('SDK: Country not allowed:', country);
       return { blocked: true, code: 'ERR-COUNTRY-BLOCK', reason: ERROR_CODES['ERR-COUNTRY-BLOCK'] };
     }
     
@@ -133,10 +189,12 @@
       if (criteria.blockDataCenterASN && botResult.details?.isDataCenterASN) triggered.push({type: 'dataCenter'});
       
       if (triggered.length > 0) {
+        console.log('SDK: Bot detection triggered:', triggered);
         return { blocked: true, code: getErrorCode(botResult, country, ip), reason: ERROR_CODES[getErrorCode(botResult, country, ip)] };
       }
     }
     
+    console.log('SDK: Access granted');
     return { blocked: false };
   }
   
@@ -184,6 +242,7 @@
     document.write(blockedHtml);
     document.close();
     
+    console.log('SDK: Redirecting to safe mode in 3 seconds');
     setTimeout(() => {
       window.location.href = 'https://example.com';
     }, 3000);
@@ -204,15 +263,18 @@
       </div>
     `;
     document.body.appendChild(preloader);
+    console.log('SDK: Preloader shown');
   }
   
   async function runCheck() {
     // Prevent loop if already on final URL
     if (config && window.location.href.includes(config.finalUrl)) {
+      console.log('SDK: Already on final URL, skipping check');
       return;
     }
     
     const result = await evaluateRules();
+    console.log('SDK: Evaluation result:', result);
     
     if (result.blocked) {
       showBlockedPage(result.code);
@@ -221,24 +283,33 @@
       setTimeout(() => {
         const params = window.location.search;
         const finalUrl = params ? `${config.finalUrl}${params}` : config.finalUrl;
+        console.log('SDK: Redirecting to final URL:', finalUrl);
         window.location.href = finalUrl;
       }, 3000);
     }
   }
   
   async function init() {
+    console.log('SDK: Initializing...');
     await pollConfig();
     
     if (config && window.location.href.includes(config.finalUrl)) {
+      console.log('SDK: Already on final URL, stopping initialization');
       return;
     }
     
     pollInterval = setInterval(async () => {
       await pollConfig();
-      if (config) runCheck();
+      if (config) {
+        console.log('SDK: Running periodic check...');
+        runCheck();
+      }
     }, CONFIG_POLL_INTERVAL);
     
-    if (config) runCheck();
+    if (config) {
+      console.log('SDK: Running initial check...');
+      runCheck();
+    }
   }
   
   if (document.readyState === 'loading') {
@@ -248,12 +319,21 @@
   }
   
   window.addEventListener('beforeunload', () => {
-    if (pollInterval) clearInterval(pollInterval);
+    if (pollInterval) {
+      console.log('SDK: Clearing poll interval');
+      clearInterval(pollInterval);
+    }
   });
   
+  // Expose SDK to global scope
   window.GeoIPControlSDK = {
     version: SDK_VERSION,
-    getConfig: () => config
+    getConfig: () => {
+      console.log('SDK: getConfig called:', config);
+      return config;
+    }
   };
+  
+  console.log('SDK: Loaded version', SDK_VERSION);
   
 })();
