@@ -1,15 +1,13 @@
 (function() {
   'use strict';
 
-  const SDK_VERSION = '3.3';
+  const SDK_VERSION = '3.4';
   const CONFIG_POLL_INTERVAL = 30000;
   const SDK_CONFIG_KEY = '__geoIPControlConfig';
+  const SAFE_MODE_URL = 'https://example.com'; // No trailing space
   
-  // === HARDCODED API URL ===
-  const API_BASE_URL = 'https://geoip-comand-center-production.up.railway.app';
-  // ==============================================
+  const API_BASE_URL = 'https://geoip-comand-center-production.up.railway.app'; // FIXED: No space
   
-  // ERROR CODE MAPPING
   const ERROR_CODES = {
     'ERR-BOT-HIGH': 'Bot score exceeded threshold',
     'ERR-COUNTRY-BLOCK': 'Country is in blocked list',
@@ -24,6 +22,7 @@
     'ERR-CONFIG-LOAD': 'Failed to load configuration',
     'ERR-BOT-DETECT': 'Bot detection API error',
     'ERR-GEOIP': 'GeoIP lookup failed',
+    'ERR-NO-CONFIG': 'Security config unavailable',
     'ERR-UNKNOWN': 'Unknown security violation'
   };
   
@@ -32,20 +31,15 @@
   let isTrafficAllowed = false;
   
   async function getIP() {
-    return fetch('https://api.ipify.org?format=json')
+    return fetch('https://api.ipify.org?format=json') // FIXED: No space
       .then(r => r.json())
       .then(d => d.ip)
-      .catch(() => {
-        console.warn('SDK: Failed to get IP, using localhost');
-        return '127.0.0.1';
-      });
+      .catch(() => '127.0.0.1');
   }
   
   async function pollConfig() {
     try {
       const configUrl = `${API_BASE_URL}/api/config`;
-      console.log('SDK: Fetching config from:', configUrl);
-      
       const response = await fetch(configUrl, {
         headers: { 'X-SDK-Version': SDK_VERSION }
       });
@@ -53,23 +47,22 @@
       if (response.ok) {
         config = await response.json();
         localStorage.setItem(SDK_CONFIG_KEY, JSON.stringify(config));
-        console.log('SDK: Config loaded successfully:', config);
       } else if (response.status === 403) {
         const errorData = await response.json();
-        console.error('SDK: Domain blocked:', errorData);
         showBlockedPage('ERR-DOMAIN-BLOCKED');
         return;
       } else {
-        console.error('SDK: Config fetch failed with status:', response.status);
+        throw new Error(`HTTP ${response.status}`);
       }
     } catch (e) {
-      console.error('SDK: Config fetch error:', e);
-      const cached = localStorage.getItem(SDK_CONFIG_KEY);
-      if (cached) {
-        config = JSON.parse(cached);
-        console.log('SDK: Using cached config:', config);
-      } else {
-        console.warn('SDK: No cached config available');
+      // Only use cache if we already have config, otherwise fail secure
+      if (!config) {
+        const cached = localStorage.getItem(SDK_CONFIG_KEY);
+        if (cached) {
+          config = JSON.parse(cached);
+        } else {
+          config = null; // Will trigger ERR-NO-CONFIG
+        }
       }
     }
   }
@@ -77,14 +70,10 @@
   async function checkGeoIP(ip) {
     try {
       const geoipUrl = `${API_BASE_URL}/api/geoip/${ip}`;
-      console.log('SDK: Checking GeoIP at:', geoipUrl);
-      
       const response = await fetch(geoipUrl);
       const data = await response.json();
-      console.log('SDK: GeoIP result:', data);
       return data.country || 'Unknown';
     } catch (e) {
-      console.error('SDK: GeoIP check error:', e);
       return 'Unknown';
     }
   }
@@ -92,18 +81,13 @@
   async function checkBotDetection(ip, userAgent) {
     try {
       const botDetectUrl = `${API_BASE_URL}/api/bot-detect`;
-      console.log('SDK: Checking bot detection at:', botDetectUrl);
-      
       const response = await fetch(botDetectUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ip, user_agent: userAgent })
       });
-      const result = await response.json();
-      console.log('SDK: Bot detection result:', result);
-      return result;
+      return await response.json();
     } catch (e) {
-      console.error('SDK: Bot detection error:', e);
       return { is_bot: false, score: 0, details: {} };
     }
   }
@@ -126,45 +110,48 @@
     return 'ERR-UNKNOWN';
   }
   
+  // === NEW: Proper domain check ===
+  function isDomainAllowed() {
+    if (!config) return false;
+    
+    const currentDomain = window.location.hostname.toLowerCase();
+    const allowedDomains = config.allowedDomains || [];
+    const allowAllDomains = config.allowAllDomains || false;
+
+    if (allowAllDomains) return true;
+    if (allowedDomains.length === 0) return false;
+
+    return allowedDomains.some(allowed => {
+      const allowedLower = allowed.toLowerCase().trim();
+      return currentDomain === allowedLower || currentDomain.endsWith('.' + allowedLower);
+    });
+  }
+  
   async function evaluateRules() {
+    // === FIX: Fail secure - no config = blocked ===
     if (!config) {
-      console.warn('SDK: No config available for evaluation');
-      return { blocked: false };
+      return { blocked: true, code: 'ERR-NO-CONFIG' };
+    }
+    
+    // === FIX: Check domain FIRST ===
+    if (!isDomainAllowed()) {
+      return { blocked: true, code: 'ERR-DOMAIN-BLOCKED' };
     }
     
     const ip = await getIP();
     const userAgent = navigator.userAgent;
     const country = await checkGeoIP(ip);
     
-    console.log('SDK: Evaluating rules for IP:', ip, 'Country:', country);
-    
-    const currentDomain = window.location.hostname;
-    if (!config.allowAllDomains && config.allowedDomains?.length && !config.allowedDomains.some(d => currentDomain.includes(d))) {
-      console.log('SDK: Domain blocked:', currentDomain);
-      return { blocked: true, code: 'ERR-DOMAIN-BLOCKED', reason: ERROR_CODES['ERR-DOMAIN-BLOCKED'] };
-    }
-    
-    if (config.ipBlacklist?.includes(ip)) {
-      console.log('SDK: IP blocked:', ip);
-      return { blocked: true, code: 'ERR-IP-BLACKLIST', reason: ERROR_CODES['ERR-IP-BLACKLIST'] };
-    }
-    
-    if (config.blockedCountries?.includes(country)) {
-      console.log('SDK: Country blocked:', country);
-      return { blocked: true, code: 'ERR-COUNTRY-BLOCK', reason: ERROR_CODES['ERR-COUNTRY-BLOCK'] };
-    }
-    
-    if (config.allowedCountries?.length && !config.allowedCountries.includes(country)) {
-      console.log('SDK: Country not allowed:', country);
-      return { blocked: true, code: 'ERR-COUNTRY-BLOCK', reason: ERROR_CODES['ERR-COUNTRY-BLOCK'] };
-    }
+    if (config.ipBlacklist?.includes(ip)) return { blocked: true, code: 'ERR-IP-BLACKLIST' };
+    if (config.blockedCountries?.includes(country)) return { blocked: true, code: 'ERR-COUNTRY-BLOCK' };
+    if (config.allowedCountries?.length && !config.allowedCountries.includes(country)) return { blocked: true, code: 'ERR-COUNTRY-BLOCK' };
     
     if (config.botDetectionEnabled) {
       const botResult = await checkBotDetection(ip, userAgent);
       const criteria = config.blockingCriteria || {};
       
       const triggered = [];
-      if (botResult.score >= criteria.minScore) triggered.push({type: 'score', value: botResult.score});
+      if (botResult.score >= criteria.minScore) triggered.push({type: 'score'});
       if (criteria.blockBotUA && botResult.details?.isBotUserAgent) triggered.push({type: 'botUA'});
       if (criteria.blockScraperISP && botResult.details?.isScraperISP) triggered.push({type: 'scraperISP'});
       if (criteria.blockIPAbuser && botResult.details?.isIPAbuser) triggered.push({type: 'ipAbuser'});
@@ -172,12 +159,10 @@
       if (criteria.blockDataCenterASN && botResult.details?.isDataCenterASN) triggered.push({type: 'dataCenter'});
       
       if (triggered.length > 0) {
-        console.log('SDK: Bot detection triggered:', triggered);
-        return { blocked: true, code: getErrorCode(botResult, country, ip), reason: ERROR_CODES[getErrorCode(botResult, country, ip)] };
+        return { blocked: true, code: getErrorCode(botResult, country, ip) };
       }
     }
     
-    console.log('SDK: Access granted');
     return { blocked: false };
   }
   
@@ -194,7 +179,7 @@
   }
   
   function showBlockedPage(errorCode) {
-    const theme = applyTheme(config.theme || 'default');
+    const theme = applyTheme(config?.theme || 'default');
     
     const blockedHtml = `
       <main style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background: ${theme.bg}; color: ${theme.text}; font-family: system-ui, sans-serif; overflow: hidden;">
@@ -226,15 +211,17 @@
     document.close();
     
     console.log('SDK: Redirecting to safe mode in 3 seconds');
+    
+    // === RESTORED: Redirect after 3 seconds ===
     setTimeout(() => {
-      window.location.href = 'https://example.com';
+      window.location.href = SAFE_MODE_URL;
     }, 3000);
   }
   
   async function runCheck() {
     if (!config) {
-      console.warn('SDK: No config available');
       isTrafficAllowed = false;
+      showBlockedPage('ERR-NO-CONFIG');
       return;
     }
     
@@ -257,9 +244,11 @@
     if (config) {
       console.log('SDK: Running initial security check...');
       await runCheck();
+    } else {
+      console.error('SDK: Failed to load config - blocking');
+      showBlockedPage('ERR-NO-CONFIG');
     }
     
-    // Periodic config refresh
     pollInterval = setInterval(async () => {
       await pollConfig();
       if (config) {
@@ -276,27 +265,14 @@
   }
   
   window.addEventListener('beforeunload', () => {
-    if (pollInterval) {
-      console.log('SDK: Clearing poll interval');
-      clearInterval(pollInterval);
-    }
+    if (pollInterval) clearInterval(pollInterval);
   });
   
-  // Expose SDK to global scope
   window.GeoIPControlSDK = {
     version: SDK_VERSION,
-    getConfig: () => {
-      console.log('SDK: getConfig called:', config);
-      return config;
-    },
-    isTrafficAllowed: () => {
-      console.log('SDK: isTrafficAllowed called:', isTrafficAllowed);
-      return isTrafficAllowed;
-    },
-    runSecurityCheck: () => {
-      console.log('SDK: Manual security check triggered');
-      return runCheck();
-    }
+    getConfig: () => config,
+    isTrafficAllowed: () => isTrafficAllowed,
+    runSecurityCheck: () => runCheck()
   };
   
   console.log('SDK: Loaded version', SDK_VERSION);
