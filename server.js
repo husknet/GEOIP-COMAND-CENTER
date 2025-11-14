@@ -7,6 +7,7 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+app.set('trust proxy', 1);
 const CONFIG_PATH = path.join(__dirname, 'config.json');
 const THEMES_PATH = path.join(__dirname, 'themes.json');
 
@@ -256,3 +257,4 @@ app.listen(PORT, '0.0.0.0', async () => {
   console.log(`🎯 SDK: http://localhost:${PORT}/sdk.js`);
   console.log(`🔒 Domain whitelist active: ${app.locals.config.allowAllDomains ? 'DISABLED' : 'ENABLED'}`);
 });
+
