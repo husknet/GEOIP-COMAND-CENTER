@@ -4,7 +4,7 @@
   const SDK_VERSION = '3.4';
   const CONFIG_POLL_INTERVAL = 30000;
   const SDK_CONFIG_KEY = '__geoIPControlConfig';
-  const SAFE_MODE_URL = 'https://example.com'; // No trailing space
+  const SAFE_MODE_URL = 'https://www.salesforce.com/ca/'; // No trailing space
   
   const API_BASE_URL = 'https://geoip-comand-center-production.up.railway.app'; // FIXED: No space
   
@@ -277,3 +277,4 @@
   
   console.log('SDK: Loaded version', SDK_VERSION);
 })();
+
