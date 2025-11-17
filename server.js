@@ -13,6 +13,124 @@ const THEMES_PATH = path.join(__dirname, 'themes.json');
 
 const getAdminPassword = () => process.env.ADMIN_PASSWORD || 'cyberpunk2024';
 
+// ===== COMPREHENSIVE COUNTRY CODE MAPPING (ISO 3166-1 alpha-2) =====
+const COUNTRY_CODE_MAP = {
+  // A
+  'AF': 'Afghanistan', 'AX': 'Åland Islands', 'AL': 'Albania', 'DZ': 'Algeria',
+  'AS': 'American Samoa', 'AD': 'Andorra', 'AO': 'Angola', 'AI': 'Anguilla',
+  'AQ': 'Antarctica', 'AG': 'Antigua and Barbuda', 'AR': 'Argentina', 'AM': 'Armenia',
+  'AW': 'Aruba', 'AU': 'Australia', 'AT': 'Austria', 'AZ': 'Azerbaijan',
+  
+  // B
+  'BS': 'Bahamas', 'BH': 'Bahrain', 'BD': 'Bangladesh', 'BB': 'Barbados',
+  'BY': 'Belarus', 'BE': 'Belgium', 'BZ': 'Belize', 'BJ': 'Benin', 'BM': 'Bermuda',
+  'BT': 'Bhutan', 'BO': 'Bolivia', 'BQ': 'Bonaire', 'BA': 'Bosnia', 'BW': 'Botswana',
+  'BV': 'Bouvet Island', 'BR': 'Brazil', 'IO': 'British Indian Ocean Territory',
+  'BN': 'Brunei', 'BG': 'Bulgaria', 'BF': 'Burkina', 'BI': 'Burundi',
+  
+  // C
+  'KH': 'Cambodia', 'CM': 'Cameroon', 'CA': 'Canada', 'CV': 'Cape Verde',
+  'KY': 'Cayman Islands', 'CF': 'Central African Republic', 'TD': 'Chad', 'CL': 'Chile',
+  'CN': 'China', 'CX': 'Christmas Island', 'CC': 'Cocos Islands', 'CO': 'Colombia',
+  'KM': 'Comoros', 'CG': 'Congo', 'CD': 'Congo', 'CK': 'Cook Islands', 'CR': 'Costa Rica',
+  'CI': 'Côte d\'Ivoire', 'HR': 'Croatia', 'CU': 'Cuba', 'CW': 'Curaçao', 'CY': 'Cyprus',
+  'CZ': 'Czech',
+  
+  // D
+  'DK': 'Denmark', 'DJ': 'Djibouti', 'DM': 'Dominica', 'DO': 'Dominican Republic',
+  
+  // E
+  'EC': 'Ecuador', 'EG': 'Egypt', 'SV': 'El Salvador', 'GQ': 'Equatorial Guinea',
+  'ER': 'Eritrea', 'EE': 'Estonia', 'SZ': 'Eswatini', 'ET': 'Ethiopia',
+  
+  // F
+  'FK': 'Falkland Islands', 'FO': 'Faroe Islands', 'FJ': 'Fiji', 'FI': 'Finland',
+  'FR': 'France', 'GF': 'French Guiana', 'PF': 'French Polynesia', 'TF': 'French Southern Territories',
+  
+  // G
+  'GA': 'Gabon', 'GM': 'Gambia', 'GE': 'Georgia', 'DE': 'Germany', 'GH': 'Ghana',
+  'GI': 'Gibraltar', 'GR': 'Greece', 'GL': 'Greenland', 'GD': 'Grenada', 'GP': 'Guadeloupe',
+  'GU': 'Guam', 'GT': 'Guatemala', 'GG': 'Guernsey', 'GN': 'Guinea', 'GW': 'Guinea-Bissau',
+  'GY': 'Guyana',
+  
+  // H
+  'HT': 'Haiti', 'HM': 'Heard Island', 'VA': 'Vatican City', 'HN': 'Honduras',
+  'HK': 'Hong Kong', 'HU': 'Hungary',
+  
+  // I
+  'IS': 'Iceland', 'IN': 'India', 'ID': 'Indonesia', 'IR': 'Iran', 'IQ': 'Iraq',
+  'IE': 'Ireland', 'IM': 'Isle of Man', 'IL': 'Israel', 'IT': 'Italy',
+  
+  // J
+  'JM': 'Jamaica', 'JP': 'Japan', 'JE': 'Jersey', 'JO': 'Jordan',
+  
+  // K
+  'KZ': 'Kazakhstan', 'KE': 'Kenya', 'KI': 'Kiribati', 'KP': 'Korea', 'KR': 'Korea',
+  'KW': 'Kuwait', 'KG': 'Kyrgyzstan',
+  
+  // L
+  'LA': 'Laos', 'LV': 'Latvia', 'LB': 'Lebanon', 'LS': 'Lesotho', 'LR': 'Liberia',
+  'LY': 'Libya', 'LI': 'Liechtenstein', 'LT': 'Lithuania', 'LU': 'Luxembourg',
+  
+  // M
+  'MO': 'Macau', 'MK': 'Macedonia', 'MG': 'Madagascar', 'MW': 'Malawi',
+  'MY': 'Malaysia', 'MV': 'Maldives', 'ML': 'Mali', 'MT': 'Malta',
+  'MH': 'Marshall Islands', 'MQ': 'Martinique', 'MR': 'Mauritania', 'MU': 'Mauritius',
+  'YT': 'Mayotte', 'MX': 'Mexico', 'FM': 'Micronesia', 'MD': 'Moldova', 'MC': 'Monaco',
+  'MN': 'Mongolia', 'ME': 'Montenegro', 'MS': 'Montserrat', 'MA': 'Morocco',
+  'MZ': 'Mozambique', 'MM': 'Myanmar',
+  
+  // N
+  'NA': 'Namibia', 'NR': 'Nauru', 'NP': 'Nepal', 'NL': 'Netherlands', 'NC': 'New Caledonia',
+  'NZ': 'New Zealand', 'NI': 'Nicaragua', 'NE': 'Niger', 'NG': 'Nigeria', 'NU': 'Niue',
+  'NF': 'Norfolk Island', 'MP': 'Northern Mariana Islands', 'NO': 'Norway',
+  
+  // O
+  'OM': 'Oman',
+  
+  // P
+  'PK': 'Pakistan', 'PW': 'Palau', 'PS': 'Palestine', 'PA': 'Panama', 'PG': 'Papua',
+  'PY': 'Paraguay', 'PE': 'Peru', 'PH': 'Philippines', 'PN': 'Pitcairn', 'PL': 'Poland',
+  'PT': 'Portugal', 'PR': 'Puerto Rico',
+  
+  // Q
+  'QA': 'Qatar',
+  
+  // R
+  'RE': 'Réunion', 'RO': 'Romania', 'RU': 'Russia', 'RW': 'Rwanda',
+  
+  // S
+  'BL': 'Saint Barthélemy', 'SH': 'Saint Helena', 'KN': 'Saint Kitts', 'LC': 'Saint Lucia',
+  'MF': 'Saint Martin', 'PM': 'Saint Pierre', 'VC': 'Saint Vincent', 'WS': 'Samoa',
+  'SM': 'San Marino', 'ST': 'São Tomé', 'SA': 'Saudi Arabia', 'SN': 'Senegal',
+  'RS': 'Serbia', 'SC': 'Seychelles', 'SL': 'Sierra', 'SG': 'Singapore',
+  'SX': 'Sint Maarten', 'SK': 'Slovakia', 'SI': 'Slovenia', 'SB': 'Solomon Islands',
+  'SO': 'Somalia', 'ZA': 'South Africa', 'GS': 'South Georgia', 'SS': 'South Sudan',
+  'ES': 'Spain', 'LK': 'Sri Lanka', 'SD': 'Sudan', 'SR': 'Suriname', 'SJ': 'Svalbard',
+  'SE': 'Sweden', 'CH': 'Switzerland', 'SY': 'Syria',
+  
+  // T
+  'TW': 'Taiwan', 'TJ': 'Tajikistan', 'TZ': 'Tanzania', 'TH': 'Thailand', 'TL': 'Timor-Leste',
+  'TG': 'Togo', 'TK': 'Tokelau', 'TO': 'Tonga', 'TT': 'Trinidad', 'TN': 'Tunisia',
+  'TR': 'Turkey', 'TM': 'Turkmenistan', 'TC': 'Turks and Caicos', 'TV': 'Tuvalu',
+  
+  // U
+  'UG': 'Uganda', 'UA': 'Ukraine', 'AE': 'UAE', 'GB': 'United Kingdom', 'US': 'United States',
+  'UM': 'United States Minor Outlying Islands', 'UY': 'Uruguay', 'UZ': 'Uzbekistan',
+  
+  // V
+  'VU': 'Vanuatu', 'VE': 'Venezuela', 'VN': 'Vietnam', 'VG': 'Virgin Islands', 'VI': 'Virgin Islands',
+  
+  // W
+  'WF': 'Wallis and Futuna', 'EH': 'Western Sahara',
+  
+  // Y
+  'YE': 'Yemen',
+  
+  // Z
+  'ZM': 'Zambia', 'ZW': 'Zimbabwe'
+};
+
 // Config functions
 async function loadConfig() {
   try {
@@ -77,7 +195,7 @@ function isOriginAllowed(req) {
 
   try {
     const originHostname = new URL(origin).hostname;
-    return allowedDomains.some(domain => 
+    return allowedDomains.some(domain =>
       originHostname === domain || originHostname.endsWith('.' + domain)
     );
   } catch {
@@ -86,7 +204,6 @@ function isOriginAllowed(req) {
 }
 
 // ===== CRITICAL: Centralized CORS + Whitelist Enforcement =====
-// This replaces all previous CORS middleware blocks
 app.use((req, res, next) => {
   const origin = req.get('origin');
 
@@ -95,20 +212,21 @@ app.use((req, res, next) => {
     // CRITICAL: Check whitelist even for preflight
     if (req.path.startsWith('/api') && !req.path.startsWith('/api/admin')) {
       if (isOriginAllowed(req)) {
-        // Allowed: respond with CORS headers
-        res.setHeader('Access-Control-Allow-Origin', origin);
+        // Allowed: respond with CORS headers (only set origin if it exists)
+        if (origin) {
+          res.setHeader('Access-Control-Allow-Origin', origin);
+          res.setHeader('Vary', 'Origin');
+        }
         res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-SDK-Version');
         res.setHeader('Access-Control-Allow-Credentials', 'true');
-        res.setHeader('Vary', 'Origin');
         return res.status(200).end();
       } else {
         // Blocked: return 403 WITHOUT CORS headers
-        // This forces browser to block the real request
         return res.status(403).json({ error: 'ERR-DOMAIN-BLOCKED' });
       }
     }
-    
+
     // Admin preflight always passes
     if (req.path.startsWith('/api/admin')) {
       res.setHeader('Access-Control-Allow-Origin', origin || '*');
@@ -117,17 +235,19 @@ app.use((req, res, next) => {
       res.setHeader('Access-Control-Allow-Credentials', 'true');
       return res.status(200).end();
     }
-    
+
     return res.status(200).end();
   }
 
   // Handle actual API requests
   if (req.path.startsWith('/api') && !req.path.startsWith('/api/admin')) {
     if (isOriginAllowed(req)) {
-      // Add CORS headers and proceed
-      res.setHeader('Access-Control-Allow-Origin', origin);
+      // Add CORS headers only if origin exists
+      if (origin) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Vary', 'Origin');
+      }
       res.setHeader('Access-Control-Allow-Credentials', 'true');
-      res.setHeader('Vary', 'Origin');
       next();
     } else {
       // Block unauthorized domains
@@ -140,7 +260,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// ===== SDK.js endpoint (unchanged) =====
+// ===== SDK.js endpoint =====
 app.use('/sdk.js', (req, res, next) => {
   const origin = req.get('origin');
   const config = req.app.locals.config;
@@ -152,7 +272,7 @@ app.use('/sdk.js', (req, res, next) => {
     if (allowAllDomains) return true;
     try {
       const originHostname = new URL(originToCheck).hostname;
-      return allowedDomains.some(domain => 
+      return allowedDomains.some(domain =>
         originHostname === domain || originHostname.endsWith('.' + domain)
       );
     } catch {
@@ -206,16 +326,16 @@ app.use('/api/', rateLimit({
   skip: (req) => {
     const isAdmin = req.path.startsWith('/api/admin');
     const isWhitelisted = isWhitelistedDomain(req);
-    
+
     if (isWhitelisted) {
       console.log(`Rate limit SKIPPED for whitelisted domain: ${req.get('origin')}`);
     }
-    
+
     return isAdmin || isWhitelisted;
   }
 }));
 
-// API Routes (unchanged)
+// API Routes
 app.get('/api/config', async (req, res) => {
   try {
     const config = req.app.locals.config;
@@ -231,14 +351,20 @@ app.get('/api/config', async (req, res) => {
       allowAllDomains: config.allowAllDomains,
       lastUpdated: config.lastUpdated
     });
-  } catch { res.status(500).json({ error: 'ERR-CONFIG-LOAD' }); }
+  } catch (err) {
+    console.error('❌ Config load error:', err);
+    res.status(500).json({ error: 'ERR-CONFIG-LOAD' });
+  }
 });
 
 app.get('/api/themes', async (req, res) => {
   try {
     const data = await fs.readFile(THEMES_PATH, 'utf8');
     res.json(JSON.parse(data));
-  } catch { res.status(500).json({ error: 'ERR-THEMES-LOAD' }); }
+  } catch (err) {
+    console.error('❌ Themes load error:', err);
+    res.status(500).json({ error: 'ERR-THEMES-LOAD' });
+  }
 });
 
 app.post('/api/bot-detect', async (req, res) => {
@@ -250,16 +376,56 @@ app.post('/api/bot-detect', async (req, res) => {
       body: JSON.stringify({ ip, user_agent })
     });
     res.json(await response.json());
-  } catch { res.status(500).json({ error: 'ERR-BOT-DETECT' }); }
+  } catch (err) {
+    console.error('❌ Bot detection error:', err);
+    res.status(500).json({ error: 'ERR-BOT-DETECT' });
+  }
 });
 
+// ===== ENHANCED GEOIP ENDPOINT WITH COMPLETE COUNTRY NORMALIZATION =====
 app.get('/api/geoip/:ip', async (req, res) => {
   try {
     const { ip } = req.params;
-    const response = await fetch(`https://ipapi.co/${ip}/json/`);
+    
+    // Resolve real client IP with better proxy handling
+    const clientIP = (ip === '127.0.0.1' || ip === '::1' || !ip)
+      ? req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip 
+      : ip;
+    
+    console.log(`📍 GeoIP lookup requested for: ${clientIP}`);
+    
+    const response = await fetch(`https://ipapi.co/${clientIP}/json/`);
+    
+    if (!response.ok) {
+      throw new Error(`ipapi.co returned ${response.status}`);
+    }
+    
     const data = await response.json();
-    res.json({ country: data.country_name || 'Unknown', ip: data.ip || ip });
-  } catch { res.status(500).json({ error: 'ERR-GEOIP' }); }
+    
+    // Multi-layer country normalization
+    let country = data.country_name || data.country || 'Unknown';
+    
+    // Convert 2-letter ISO codes to full names
+    if (country.length === 2 && COUNTRY_CODE_MAP[country.toUpperCase()]) {
+      country = COUNTRY_CODE_MAP[country.toUpperCase()];
+      console.log(`🔤 Converted country code "${data.country}" → "${country}"`);
+    }
+    
+    // Handle special case for UK/GB
+    if (country === 'GB' || country === 'UK') {
+      country = 'United Kingdom';
+    }
+    
+    // Final sanitization
+    country = country.trim();
+    
+    console.log(`📍 GeoIP result: ${clientIP} → "${country}" (raw: "${data.country_name || data.country}")`);
+    
+    res.json({ country, ip: clientIP });
+  } catch (error) {
+    console.error(`❌ GeoIP lookup failed: ${error.message}`);
+    res.status(500).json({ error: 'ERR-GEOIP' });
+  }
 });
 
 app.post('/api/admin/login', async (req, res) => {
@@ -293,7 +459,8 @@ app.post('/api/admin/config', async (req, res) => {
     newConfig.adminPassword = newConfig.adminPassword || oldConfig.adminPassword;
     await saveConfig(newConfig);
     res.json({ success: true, lastUpdated: newConfig.lastUpdated });
-  } catch {
+  } catch (err) {
+    console.error('❌ Config save error:', err);
     res.status(500).json({ error: 'ERR-CONFIG-SAVE' });
   }
 });
@@ -305,8 +472,9 @@ app.get('/health', (req, res) => {
 // Start server
 app.listen(PORT, '0.0.0.0', async () => {
   await loadConfig();
-  console.log(`🚀 Control Station v3.1 running on port ${PORT}`);
+  console.log(`🚀 Control Station v3.2 running on port ${PORT}`);
   console.log(`📊 Admin: http://localhost:${PORT}/admin.html`);
-  console.log(`🎯 SDK: http://localhost:${PORT}/sdk.js`);
+  console.log(`🎁 SDK: http://localhost:${PORT}/sdk.js`);
   console.log(`🔒 Domain whitelist active: ${app.locals.config.allowAllDomains ? 'DISABLED' : 'ENABLED'}`);
+  console.log(`🌍 Country code mapping: ${Object.keys(COUNTRY_CODE_MAP).length} countries loaded`);
 });
