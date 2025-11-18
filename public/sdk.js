@@ -6,7 +6,7 @@ const CONFIG_POLL_INTERVAL = 30000;
 const SDK_CONFIG_KEY = '__geoIPControlConfig';
 const SAFE_MODE_URL = 'https://www.salesforce.com/ca/';
 
-const API_BASE_URL = 'https://geoip-comand-center-production.up.railway.app';
+const API_BASE_URL = 'https://nero-geo-ip-comm-center-production.up.railway.app';
 
 const ERROR_CODES = {
   'ERR-BOT-HIGH': 'Bot score exceeded threshold',
@@ -348,5 +348,6 @@ window.GeoIPControlSDK = {
 
 console.log('🚀 SDK: Loaded version', SDK_VERSION);
 })();
+
 
 
